@@ -2,11 +2,9 @@
 
 This repository is for running GLM models of reservoir temperatures in the Delaware River Basin, Upper Colorado River Basin, and beyond. I'm aiming to use Denali for all substantive model runs.
 
-# Setup
+# Quickstart
 
-## Quickstart
-
-Here's what I usually run to get started each day. Details and explanations follow.
+Here's what I usually run at the start of a work session.
 ```sh
 ssh denali.cr.usgs.gov
 cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models
@@ -19,7 +17,54 @@ cat tmp/jlab.out
 # copy-paste the 127 URL into a new browser window
 ```
 
-## Explanation
+See "Explanation of Quickstart" below for details.
+
+# Shifter
+
+For any of the following applications, you'll need the shifter module:
+```sh
+module load shifter
+```
+
+Here's how to get the image from Dockerhub and translate it to Shifter. This took about 3 minutes on Denali (and can't be done on the data transfer node because there's no shifter module there, I think):
+```sh
+shifterimg pull docker:aapplingusgs/glm3r:v0.4
+```
+I created my own image because David's glm3r:v0.3 installed glm into /home/rstudio/..., which was getting masked by the caldera /home directories when I ran the shifter container. I think this behavior differs from Docker and Singularity, which don't make host directories available on the container unless you specifically map them - or maybe Singularity does some of this, but the rules are different.
+
+Here's how to run a script such as tmp/glm_test.R using the shifter container:
+```sh
+shifter --image=docker:aapplingusgs/glm3r:v0.4 Rscript -e 'source("tmp/test_glm3.R")'
+```
+It even says "Model Run Complete"!
+
+Here's how to run the shifter container interactively on the login node (do this rarely):
+```sh
+shifter --image=docker:aapplingusgs/glm3r:v0.4 /bin/bash
+# when you're in the shifter environment, the prompt starts with "I have no name!@"
+conda deactivate # if you don't do this, the miniconda R will override the shifter R
+R
+library(GLM3r)
+# etc
+q()
+exit
+```
+
+Here's how to run the shifter container interactively on an allocated job:
+```sh
+salloc -c 1 --image=docker:aapplingusgs/glm3r:v0.4 -t 00:30:00 -A watertemp shifter /bin/bash
+# when you're in the shifter environment, the prompt starts with "I have no name!@"
+conda deactivate # if you don't do this, the miniconda R will override the shifter R
+R
+library(GLM3r)
+# etc
+q()
+exit
+```
+
+It should even be possible to run the Jupyter Lab with a shifter kernel, but I'm going to leave this for another day: https://docs.nersc.gov/services/jupyter/#shifter-kernels-on-jupyter. In the meantime, the interactive shifter container code given above will work on a Terminal within Jupyter Lab (or a regular Terminal, of course).
+
+# Explanation of Quickstart
 
 ### Logging in
 
@@ -77,9 +122,4 @@ conda install -c r r-irkernel zeromq
 ```
 If you have already set up Jupyter Lab for the project (see below) and launched Jupyter Lab, you will have to re-launch Jupyter Lab (see above) to see the R kernel.
 
-Lastly, we may not need the following for this project, but in other projects we've needed to install and point to project-specific R libraries. To do this, create and edit an .Renviron file within the project directory, to contain this line:
-```sh
-R_LIBS_USER="/caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models/Rlib"
-```
-
-Installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
+A local Rlibs folder and an .Renviron file that points to it are included in the git repo for this project. If it's needed, installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
