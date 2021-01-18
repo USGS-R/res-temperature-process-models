@@ -1,27 +1,34 @@
 # GLM modeling of reservoir temperatures
 
-This repository is for running GLM models of reservoir temperatures in the Delaware River Basin, Upper Colorado River Basin, and beyond.
+This repository is for running GLM models of reservoir temperatures in the Delaware River Basin, Upper Colorado River Basin, and beyond. I'm aiming to use Denali for all substantive model runs.
 
 # Setup
 
 ## Quickstart
 
-Here are the common commands. Details and explanations follow.
+Here's what I usually run to get started each day. Details and explanations follow.
 ```sh
-ssh -t denali.cr.usgs.gov 'cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models && exec bash -l'
+ssh denali.cr.usgs.gov
+cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models
+
 umask 002
+
+sbatch launch-jlab.slurm
+cat tmp/jlab.out
+# copy-paste the ssh command into a new terminal window
+# copy-paste the 127 URL into a new browser window
 ```
 
+## Explanation
 
-## Log in
+### Logging in
 
-Run this repository on cluster nodes. I'm aiming to use Denali.
 ```sh
 ssh denali.cr.usgs.gov
 cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models
 ```
 
-## Configure session to share file access
+### Configuring session to share file access
 
 By default on the USGS clusters, any time someone modifies a file, the file permissions change so that others are locked out. This made it really difficult to work collaboratively in one directory. To get around this, first give read-write access to everyone in your group for this whole directory (one time):
 ```sh
@@ -34,80 +41,45 @@ Then, for every session you start up, configure your session so that any changes
 umask 002
 ```
 
-## Editing files on the cluster - Launching Jupyter Lab
-** These instructions are currently for Yeti and lake-temperature-out. Some changes will be needed. **
+### Editing files on the cluster - Launching Jupyter Lab
 
-Similar instructions are available for [tallgrass](https://github.com/USGS-CIDA/lake-temperature-neural-networks/tree/master/2_model#editing-files-on-the-cluster) and [yeti](https://github.com/USGS-R/lake-temperature-out/blob/master/README.md#editing-files-on-the-cluster---launching-jupyter-lab).
+Similar instructions are available for [tallgrass - lake temps](https://github.com/USGS-CIDA/lake-temperature-neural-networks/tree/master/2_model#editing-files-on-the-cluster), [yeti generally](https://hpcportal.cr.usgs.gov/hpc-user-docs/Yeti/Guides_and_Tutorials/how-to/Launch_Jupyter_Notebook.html), and [yeti - lake temps](https://github.com/USGS-R/lake-temperature-out/blob/master/README.md#editing-files-on-the-cluster---launching-jupyter-lab).
 
 You can use `vim` to edit files locally.
 
-You can also use the Jupyter interface to edit files via a browser-based IDE. See https://hpcportal.cr.usgs.gov/hpc-user-docs/Yeti/Guides_and_Tutorials/how-to/Launch_Jupyter_Notebook.html for more.
+You can also use the Jupyter interface to edit files via a browser-based IDE.
 
-Once you have set up a script to launch Jupyter Lab for the project and created the jlab environment for the user (see instructions below), follow these steps:
-
-1. In a new terminal window (call this one Terminal #2, assuming you'll keep one open for terminal access to Yeti):
+1. In a terminal window:
 ```sh
-ssh yeti.cr.usgs.gov
-cd /cxfs/projects/usgs/water/iidd/data-sci/lake-temp/lake-temperature-out
-module load legacy
-module load python/anaconda3
-salloc -J jlab -t 2:00:00 -p normal -A iidd -n 1 -c 1
-sh launch-jlab.sh
+ssh denali.cr.usgs.gov
+cd /caldera/projects/usgs/water/iidd/data-sci/lake-temp/res-temperature-process-models
+sbatch launch-jlab.slurm
+cat tmp/jlab.out
 ```
-and copy the first line printed out by that script (begins with `ssh`). Note that this terminal is now tied up.
 
-2. In another new terminal window (call this one Terminal #3), paste the ssh command, which will look something like this:
-```sh
- ssh -N -L 8599:igskahcmgslih03.cr.usgs.gov:8599 hcorson-dosch@yeti.cr.usgs.gov
-```
-Enter the command. Note that this terminal is now tied up.
+From the top of the output of the `cat` call, locate the `ssh` command between lines of `####`. Copy this command and paste it into a new terminal window (which will become permanently tied up).
 
-#### Creating a conda Jupyter Lab environment (once per user)
+From the last line of output of the `cat` call, copy the `http://127.0.0.1` URL and paste it into a local browser window. A jupyter lab session should open in your browser.
+
+#### Preparing a software environment to run Jupyter and project code (once per user)
+
+You may need to install miniconda3 in your home directory on caldera, or find some other way to access conda, before the following directions become possible.
+
+To create a Jupyter-ready conda environment:
 ```sh
-module load legacy
-module load python/anaconda3
 conda create -n jlab jupyterlab -c conda-forge
 ```
 
-In order to add an R kernel to the Jupyter Lab IDE (so that we can build and run R notebooks in addition to Python notebooks), we need to run the following series of commands:
+To add an R kernel to the Jupyter Lab IDE (so that we can build and run R notebooks in addition to Python notebooks):
 ```sh
-module load legacy
-module load python/anaconda3
 conda activate jlab
 conda install -c r r-irkernel zeromq
 ```
 If you have already set up Jupyter Lab for the project (see below) and launched Jupyter Lab, you will have to re-launch Jupyter Lab (see above) to see the R kernel.
 
-#### Creating a script to launch Jupyter Lab (once per project)
-Save the following script to `launch-jlab.sh`.
-
+Lastly, we may not need the following for this project, but in other projects we've needed to install and point to project-specific R libraries. To do this, create and edit an .Renviron file within the project directory, to contain this line:
 ```sh
-#!/bin/bash
-
-JPORT=`shuf -i 8400-9400 -n 1` 
-
-source activate jlab
-
-echo "ssh -N -L $JPORT:`hostname`:$JPORT $USER@yeti.cr.usgs.gov"
-
-jupyter lab --ip '*' --no-browser --port $JPORT --notebook-dir=. &
-
-wait
+R_LIBS_USER="/caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-models/Rlib"
 ```
 
-Next we need to add the base R library from the Yeti R 3.6.3 module to our .Renviron file, so that it can be accessed by the Rkernel in Jupyter Lab.
-
-In the console, within the project directory, type `vim .Renviron`. Enter 'i' to enter the insert mode, and paste in the following line:
-
-```sh
-R_LIBS_USER="/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/lake-temperature-out/Rlib_3_6":"/opt/ohpc/pub/usgs/libs/gnu8/R/3.6.3/lib64/R/library"
-```
-Press 'Esc', then type ':wq' to save and close the file.
-
-Launch Jupyter Lab (see above) and open a new Jupyter Notebook with the R kernel. Run the command `.libPaths()`. You should see these 3 paths listed in this order:
-```sh
-'/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/lake-temperature-out/Rlib_3_6'
-'/opt/ohpc/pub/usgs/libs/gnu8/R/3.6.3/lib64/R/library'
-'/home/{username}/.conda/envs/jlab/lib/R/library'
-```
-Now we should be able to load any libraries from our project library folder while in Jupyter Lab, and any necessary dependencies that are not in our project library folder will be loaded from the Yeti R 3.6.3 module library.
+Installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
