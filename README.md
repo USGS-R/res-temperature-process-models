@@ -11,7 +11,7 @@ cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/res-temperature-process-m
 
 umask 002
 
-sbatch launch-jlab.slurm
+sbatch launch-jlab.slurm # -t 08:00:00
 cat tmp/jlab.out
 # copy-paste the ssh command into a new terminal window
 # copy-paste the 127 URL into a new browser window

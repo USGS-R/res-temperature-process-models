@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J jlab
-#SBATCH -t 4:00:000
+#SBATCH -t 4:00:00
 #SBATCH -o tmp/jlab.out
 #SBATCH -A watertemp
 #SBATCH -n 1
