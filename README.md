@@ -1,6 +1,6 @@
 # GLM modeling of reservoir temperatures
 
-This repository is for running GLM models of reservoir temperatures in the Delaware River Basin, Upper Colorado River Basin, and beyond. I'm aiming to use Denali for all substantive model runs.
+This repository is for eventually running GLM models of reservoir temperatures in the Delaware River Basin, Upper Colorado River Basin, Missouri, and beyond. For now it's just the Pepacton (`nhdhr_151957878`) and Cannonsville (`nhdhr_120022743`) reservoirs in the DRB. I'm aiming to use Denali for all substantive model runs.
 
 # Quickstart
 
