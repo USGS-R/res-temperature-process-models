@@ -1,3 +1,6 @@
+#' Create a YAML file with file summaries of the form `filename: hash`
+#' @param files vector of filenames to summarize
+#' @param out_yml name/path of the YAML file to write
 hash_files <- function(files, out_yml) {
   # hash the files into a list
   info_list <- files %>%

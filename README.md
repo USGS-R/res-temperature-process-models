@@ -123,3 +123,15 @@ conda install -c r r-irkernel zeromq
 If you have already set up Jupyter Lab for the project (see below) and launched Jupyter Lab, you will have to re-launch Jupyter Lab (see above) to see the R kernel.
 
 A local Rlibs folder and an .Renviron file that points to it are included in the git repo for this project. If it's needed, installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
+
+### Installing GLM locally
+
+Ideally you'd use the Shifter/Docker container, but if you really must run GLM3 on a local computer...
+
+Follow instructions at https://github.com/AquaticEcoDynamics/GLM/blob/master/README.Macintosh to build the binary for glm, then:
+```
+remotes::install_github("jsta/GLM3r")
+Sys.setenv(GLM_PATH = "/path/to/AquaticEcoDynamics/GLM/glm")
+```
+once you've tested it, put that `Sys.setenv()` call in an .Rprofile file in this project's directory.
+
