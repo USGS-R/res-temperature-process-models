@@ -31,6 +31,7 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, meteo_obj, export_fl){ # k
     return(tibble(
       site_id = site_id,
       glm_time_s = glm_time,
+      glm_success = FALSE,
       glm_code = glm_code,
       export_fl = NA,
       export_fl_hash = NA))
@@ -62,6 +63,7 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, meteo_obj, export_fl){ # k
   return(tibble(
     site_id = site_id,
     glm_time_s = glm_time,
+    glm_success = TRUE,
     glm_code = glm_code,
     export_fl = export_fl,
     export_fl_hash = tools::md5sum(export_fl)))

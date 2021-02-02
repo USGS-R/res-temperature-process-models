@@ -45,5 +45,17 @@ p1 <- list(
   tar_target(
     p1_reservoir_ids,
     readRDS(p1_ltmp_nml_list.rds) %>% purrr::map_chr('site_id') %>% unname()
+  ),
+
+  tar_target(
+    p1_nml_edits,
+    list(
+      nhdhr_151957878 = list(# Pepacton
+        crest_elev = 390.0 # from Sam's slides on 1/28/21
+      ),
+      nhdhr_120022743 = list(# Cannonsville
+        crest_elev = 350.6 # from Sam's slides on 1/28/21
+      )
+    )
   )
 )

@@ -1,4 +1,4 @@
-write_glm3_nml_files <- function(nml_list_rds, site_ids, base_nml, nml_dir, nml_hashes_yml){
+write_glm3_nml_files <- function(nml_list_rds, nml_edits, site_ids, base_nml, nml_dir, nml_hashes_yml){
   nml_list <- readRDS(nml_list_rds)
   nml_base <- read_nml(base_nml)
 
@@ -8,6 +8,12 @@ write_glm3_nml_files <- function(nml_list_rds, site_ids, base_nml, nml_dir, nml_
   # nml_files <-
   nml_objs <- nml_list[site_ids] %>%
     purrr::imap(function(nml_args, site_id) {
+
+      # make any manual edits specified in 1_fetch
+      edits <- nml_edits[[site_id]]
+      for(ed in names(edits)) {
+        nml_args[[ed]] <- edits[[ed]]
+      }
 
       # calculate, add, and remove arguments
       nml_args <- append(nml_args, list(

@@ -8,6 +8,7 @@ p2 <- list(
     p2_nml_objects,
     write_glm3_nml_files(
       nml_list_rds = p1_ltmp_nml_list.rds,
+      nml_edits = p1_nml_edits,
       site_ids = p1_reservoir_ids,
       base_nml = p2_glm_template.nml,
       nml_dir = '2_prep/out/nml',
