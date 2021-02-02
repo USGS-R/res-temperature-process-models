@@ -12,7 +12,7 @@ write_glm3_nml_files <- function(nml_list_rds, site_ids, base_nml, nml_dir, nml_
       # calculate, add, and remove arguments
       nml_args <- append(nml_args, list(
         sim_name = nml_args$site_id,
-        nsave = 1, # use nsave = 1 for daily output or 24 for hourly
+        nsave = 24, # use nsave = 24 for daily output or 1 for hourly
         start = '1979-04-01',
         stop = '2018-12-31',
         max_layers = max(30, ceiling(7 * nml_args$lake_depth)),

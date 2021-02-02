@@ -1,7 +1,7 @@
 library(targets)
 library(tarchetypes)
 library(tidyverse)
-tar_option_set(packages = 'tidyverse')
+tar_option_set(packages = 'tidyverse', error = 'continue')
 source('lib/src/hash_files.R')
 
 source('1_fetch.R')
