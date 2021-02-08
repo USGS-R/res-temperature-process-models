@@ -123,3 +123,62 @@ conda install -c r r-irkernel zeromq
 If you have already set up Jupyter Lab for the project (see below) and launched Jupyter Lab, you will have to re-launch Jupyter Lab (see above) to see the R kernel.
 
 A local Rlibs folder and an .Renviron file that points to it are included in the git repo for this project. If it's needed, installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
+
+### Using the GLM container locally (with Docker)
+
+1. Git clone https://github.com/wdwatkins/glm3r_docker
+
+2. Launch Docker Desktop.
+
+From the glm3r_docker working directory:
+```sh
+docker-compose up
+```
+
+
+
+### Installing GLM locally
+
+Ideally you'd use the Shifter/Docker container, but if you really must run GLM3 on a local computer...
+
+1. Install home-brew (https://brew.sh/)
+```sh
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Open README.Macintosh at https://github.com/AquaticEcoDynamics/GLM and follow the instructions
+    1. Install Xcode (and command line): `xcode-select —install`
+    2. Get fortran: `brew install gcc`
+    3. Get NetCDF: `brew install netcdf`
+    4. Get libgd: `brew install gd`
+    5. Get make: `brew install cmake`
+    
+3. Clone all repositories on local machine
+```sh
+mkdir AquaticEcoDynamics
+cd AquaticEcoDynamics
+git clone https://github.com/AquaticEcoDynamics/libplot.git
+git clone https://github.com/AquaticEcoDynamics/libaed2.git
+git clone https://github.com/AquaticEcoDynamics/libutil.git
+git clone https://github.com/AquaticEcoDynamics/GLM.git
+git clone https://github.com/AquaticEcoDynamics/libaed-water.git
+```
+
+4. Go into GLM/, checkout your version of choice, and modify GLM_CONFIG
+```sh
+cd GLM
+git checkout tags/v3.1.0 -b v3.1.0 # or do "git clone -b v3.1.0 https://github.com/AquaticEcoDynamics/GLM.git" above
+vim GLM_CONFIG
+```
+In `vim`, remove `#` before `export FC=gfortran` and `#` before `export HOMEBREW=true`
+OR: `export FC=ifort`
+
+5. Run `./build_glm.sh`
+
+6. Install GLM3r and point it to the newly built glm executable
+```
+remotes::install_github("jsta/GLM3r")
+Sys.setenv(GLM_PATH = "/path/to/AquaticEcoDynamics/GLM/glm")
+```
+once you've tested it, put that `Sys.setenv()` call in an .Rprofile file in this project's directory, or make the corresponding edit to a local .Renviron file.
+
