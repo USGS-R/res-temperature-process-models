@@ -28,31 +28,21 @@ module load shifter
 
 Here's how to get the image from Dockerhub and translate it to Shifter. This took about 3 minutes on Denali (and can't be done on the data transfer node because there's no shifter module there, I think):
 ```sh
-shifterimg pull docker:aapplingusgs/glm3r:v0.4
+shifterimg pull docker:aapplingusgs/glm3r:v0.5
 ```
-I created my own image because David's glm3r:v0.3 installed glm into /home/rstudio/..., which was getting masked by the caldera /home directories when I ran the shifter container. I think this behavior differs from Docker and Singularity, which don't make host directories available on the container unless you specifically map them - or maybe Singularity does some of this, but the rules are different.
+I created my own image because:
+1. David's glm3r:v0.3 installed glm into /home/rstudio/..., which was getting masked by the caldera /home directories when I ran the shifter container. I think this behavior differs from Docker and Singularity, which don't make host directories available on the container unless you specifically map them - or maybe Singularity does some of this, but the rules are different.
+2. I wanted to have `targets`, `glmtools`, and other packages installed so I could build the models as targets. It's easier to install these packages while building a Docker image than while on Denali - I keep hitting 404s and other https issues when trying to `install_github` on Denali.
 
-Here's how to run a script such as tmp/glm_test.R using the shifter container:
-```sh
-shifter --image=docker:aapplingusgs/glm3r:v0.4 Rscript -e 'source("tmp/test_glm3.R")'
-```
-It even says "Model Run Complete"!
 
-Here's how to run the shifter container interactively on the login node (do this rarely):
+Here's how to build targets using the shifter container:
 ```sh
-shifter --image=docker:aapplingusgs/glm3r:v0.4 /bin/bash
-# when you're in the shifter environment, the prompt starts with "I have no name!@"
-conda deactivate # if you don't do this, the miniconda R will override the shifter R
-R
-library(GLM3r)
-# etc
-q()
-exit
+salloc -c 1 --image=docker:aapplingusgs/glm3r:v0.5 -t 00:30:00 -A watertemp shifter Rscript -e 'targets::tar_make(p3_glm_sh_out)'
 ```
 
 Here's how to run the shifter container interactively on an allocated job:
 ```sh
-salloc -c 1 --image=docker:aapplingusgs/glm3r:v0.4 -t 00:30:00 -A watertemp shifter /bin/bash
+salloc -c 1 --image=docker:aapplingusgs/glm3r:v0.5 -t 00:30:00 -A watertemp shifter /bin/bash
 # when you're in the shifter environment, the prompt starts with "I have no name!@"
 conda deactivate # if you don't do this, the miniconda R will override the shifter R
 R
@@ -61,6 +51,30 @@ library(GLM3r)
 q()
 exit
 ```
+
+
+## Other shifter options
+
+Here are some examples running shifter on the login node (do this rarely):
+
+Run a script such as tmp/glm_test.R:
+```sh
+shifter --image=docker:aapplingusgs/glm3r:v0.5 Rscript -e 'source("tmp/test_glm3.R")'
+```
+
+Get a bash environment for interactive work on the shifter container:
+```sh
+shifter --image=docker:aapplingusgs/glm3r:v0.5 /bin/bash
+# when you're in the shifter environment, the prompt starts with "I have no name!@"
+conda deactivate # if you don't do this, the miniconda R will override the shifter R
+R
+library(GLM3r)
+# etc
+q()
+exit
+```
+
+Here's how to run 
 
 It should even be possible to run the Jupyter Lab with a shifter kernel, but I'm going to leave this for another day: https://docs.nersc.gov/services/jupyter/#shifter-kernels-on-jupyter. In the meantime, the interactive shifter container code given above will work on a Terminal within Jupyter Lab (or a regular Terminal, of course).
 

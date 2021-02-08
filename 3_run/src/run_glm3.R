@@ -53,7 +53,7 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, meteo_obj, export_fl){ # k
 
   # combine ice and temperature data and write to file
   out_dir <- dirname(export_fl)
-  if(!dir.exists(out_dir)) dir.create(out_dir)
+  if(!dir.exists(out_dir)) dir.create(out_dir, recursive=TRUE)
   ice_data %>%
     dplyr::left_join(temp_data, ., by = 'date') %>%
     select(time = date, everything()) %>%
