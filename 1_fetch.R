@@ -1,6 +1,22 @@
 source('1_fetch/src/sbtools_utils.R')
 
+data_release_sb_id <- '6006eec9d34e592d867201d0'
+
 p1 <- list(
+  tar_target(
+    sb_status_csv,
+    update_sb_status(
+      sb_id = data_release_sb_id,
+      status_file = '1_fetch/log/sb_status.csv', # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
+      wait_interval = as.difftime(1, units='secs')),
+    cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
+    format = 'file',
+    packages = 'sbtools'
+  ),
+  # to view status:
+  # source('1_fetch/src/sbtools_utils.R'); read_sb_status(tar_read(sb_status_csv))
+  tar_target(sb_outdated, get_sb_outdated(sb_status_csv)),
+
   # Download temperatures, water levels, and GLM config files from ScienceBase,
   # using static branching over several files with prefix ltmp
   tar_map(
@@ -10,14 +26,12 @@ p1 <- list(
     names = starts_with('target_names'),
     tar_target(
       p1_ltmp,
-      { sb_secret_login()
-        item_file_download(
-          sb_id = '6006eec9d34e592d867201d0',
-          names = basename(ltmp_filenames),
-          destinations = ltmp_filenames,
-          overwrite_file = TRUE)
-        return(ltmp_filenames)
-      },
+      sb_download_if_needed(
+        sb_id = data_release_sb_id,
+        names = basename(ltmp_filenames),
+        destinations = ltmp_filenames,
+        outdated = sb_outdated, # can set outdated = ltmp_filenames to make this a target that only rebuilds on force
+        status_file = sb_status_csv),
       packages = c('sbtools'),
       format = 'file')
   ),
@@ -29,13 +43,12 @@ p1 <- list(
   ),
   tar_target(
     p1_meteo,
-    { sb_secret_login()
-      item_file_download(
-        sb_id = '6006eec9d34e592d867201d0',
-        names = basename(p1_meteo_filenames),
-        destinations = p1_meteo_filenames,
-        overwrite_file = TRUE)
-    },
+    sb_download_if_needed(
+      sb_id = data_release_sb_id,
+      names = basename(p1_meteo_filenames),
+      destinations = p1_meteo_filenames,
+      outdated = sb_outdated, # can set outdated = ltmp_filenames to make this a target that only rebuilds on force
+      status_file = sb_status_csv),
     packages = c('sbtools'),
     format = 'file',
     pattern = map(p1_meteo_filenames)
@@ -56,6 +69,7 @@ p1 <- list(
       nhdhr_120022743 = list(# Cannonsville
         crest_elev = 350.6 # from Sam's slides on 1/28/21
       )
+    )
     )
   )
 )
