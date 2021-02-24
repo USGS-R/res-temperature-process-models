@@ -1,4 +1,5 @@
 source('1_fetch/src/sbtools_utils.R')
+source('1_fetch/src/zip_to_sf.R')
 
 data_release_sb_id <- '6006eec9d34e592d867201d0'
 sb_status_csv_name <- '1_fetch/log/sb_status.csv'
@@ -10,7 +11,7 @@ p1 <- list(
       sb_id = data_release_sb_id,
       status_file = sb_status_csv_name, # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
       wait_interval = as.difftime(1, units='days'), # make this huge to ~never check
-      ignore_files = c('fgdc_metadata.xml', 'reservoir_polygons.zip')),
+      ignore_files = c('fgdc_metadata.xml')),
     cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
     format = 'file',
     packages = 'sbtools'
@@ -18,6 +19,18 @@ p1 <- list(
   # to view status:
   # source('1_fetch/src/sbtools_utils.R'); read_sb_status(tar_read(sb_status_csv))
   tar_target(sb_outdated, get_sb_outdated(sb_status_csv)),
+
+  # Download and unzip the reservoir polygons
+  tar_target(
+    p1_reservoir_polygons,
+    sb_download_if_needed(
+      sb_id = data_release_sb_id,
+      names = 'reservoir_polygons.zip',
+      destinations = '1_fetch/out/reservoir_polygons.zip',
+      outdated = sb_outdated,
+      status_file = sb_status_csv_name) %>%
+      zip_to_sf()
+  ),
 
   # Download temperatures, water levels, and GLM config files from ScienceBase,
   # using static branching over several files with prefix ltmp
