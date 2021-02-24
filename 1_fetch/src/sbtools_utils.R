@@ -19,24 +19,27 @@ read_sb_status <- function(status_file) {
   read_csv(status_file, col_types = cols(filename=col_character(), .default=col_datetime()))
 }
 
-#' @param sbfiles vector of files to update, or missing to update all
-update_sb_status <- function(sb_id, status_file, wait_interval=as.difftime(0, units='days'), sb_files) {
+#' @param wait_interval time to wait before querying SB again. a difftime object, e.g., `as.difftime(1, units='days')`
+#' @param update_files vector of files to update, or missing to update all
+#' @param ignore_files vector of files to omit from the status tibble
+update_sb_status <- function(sb_id, status_file, wait_interval, update_files, ignore_files=c()) {
   # get some starting status info into memory, reading in the previous status
   # information if available
   status <- if(file.exists(status_file)) {
-    read_sb_status(status_file)
+    read_sb_status(status_file) %>%
+      filter(!filename %in% ignore_files)
   } else {
     if(!dir.exists(dirname(status_file))) dir.create(dirname(status_file), recursive=TRUE)
-    tibble(filename='', date_uploaded=Sys.time(), date_checked=Sys.time(), fetch_datestamp=Sys.time())[c(),]
+    tibble(filename='', date_uploaded=Sys.time(), date_checked=Sys.time(), date_fetched=Sys.time(), fetch_datestamp=Sys.time())[c(),]
   }
 
   # decide whether we have to do the update
-  has_sb_files <- !missing(sb_files)
+  has_update_files <- !missing(update_files)
   prev_date_checked <- status %>% # find the earliest check date of those files
-    {if(has_sb_files) { filter(., filename %in% sb_files) } else .} %>%
+    {if(has_update_files) { filter(., filename %in% update_files) } else .} %>%
     pull(date_checked) %>%
     {suppressWarnings(min(., na.rm = TRUE))}
-  if(nrow(status) == 0 || (has_sb_files && length(sb_files) == 0) || (Sys.time() - prev_date_checked) > wait_interval) {
+  if(nrow(status) == 0 || (has_update_files && length(update_files) == 0) || (Sys.time() - prev_date_checked) > wait_interval) {
 
     # we need it, so query SB for status of all files (couldn't request info file-by-file without adding API calls)
     message('Updating SB file status')
@@ -44,16 +47,19 @@ update_sb_status <- function(sb_id, status_file, wait_interval=as.difftime(0, un
     new_status <- as.sbitem(sb_id)$files %>%
       purrr::map_df(function(file_info) tibble::as_tibble(file_info[c('name','dateUploaded')])) %>%
       rename(filename = name, date_uploaded = dateUploaded) %>%
+      filter(!filename %in% ignore_files) %>%
       mutate(date_uploaded = as.POSIXct(date_uploaded, format='%Y-%m-%dT%H:%M:%SZ'), date_checked = Sys.time())
 
     # adjust the status information based on the new query results
-    if(missing(sb_files)) { sb_files <- new_status$filename }
+    if(missing(update_files)) {
+      update_files <- new_status$filename
+    }
     updates <- status %>%
       select(filename, fetch_datestamp) %>%
       full_join(new_status, by='filename') %>%
-      filter(filename %in% sb_files)
+      filter(filename %in% update_files)
     out_status <- status %>%
-      filter(!(filename %in% sb_files)) %>%
+      filter(!(filename %in% update_files)) %>%
       bind_rows(updates) %>%
       arrange(filename)
 
@@ -80,22 +86,26 @@ get_sb_outdated <- function(status_file) {
 sb_download_if_needed <- function(sb_id, names, destinations, outdated, status_file) {
 
   # if the files aren't outdated, don't change them
-  files_to_download <- names[!file.exists(names) || (names %in% outdated)]
-  if(length(files_to_download) == 0) {
+  to_download <- !file.exists(destinations) | (names %in% outdated)
+  if(!any(to_download)) {
+    message('Skipping re-download of ', paste(names, collapse=', '))
     return(destinations)
   }
 
   sb_secret_login()
   item_file_download(
     sb_id = sb_id,
-    names = files_to_download,
-    destinations = destinations,
+    names = names[to_download],
+    destinations = destinations[to_download],
     overwrite_file = TRUE)
 
   # update the status information for just these files (hidden side effect of the function; needs to happen at ~ same time as download)
-  update_sb_status(sb_id, status_file, wait_interval = as.difftime(0, units = 'days'), sb_files = files_to_download)
+  update_sb_status(sb_id, status_file, wait_interval = as.difftime(0, units = 'secs'), update_files = names[to_download])
   read_sb_status(status_file) %>%
-    mutate(fetch_datestamp = case_when(filename %in% files_to_download ~ date_uploaded, TRUE ~ fetch_datestamp)) %>%
+    mutate(
+      date_fetched = case_when(filename %in% names[to_download] ~ Sys.time(), TRUE ~ date_fetched),
+      fetch_datestamp = case_when(filename %in% names[to_download] ~ date_uploaded, TRUE ~ fetch_datestamp)
+    ) %>%
     write_csv(status_file)
 
   # return the filenames of the data files
