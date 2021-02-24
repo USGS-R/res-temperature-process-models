@@ -4,7 +4,7 @@
 #'   where sometimes meteo files are mysteriously too long; see
 #'   https://github.com/USGS-R/lake-temperature-model-prep/issues/134
 #' @return tibble of meteo data
-munge_meteo <- function(meteo_fl, n_max = 14975){
-  readr::read_csv(meteo_fl, col_types = 'Dddddddd', n_max = n_max) %>%
+munge_meteo <- function(meteo_fl, n_max = 15320){
+  met <-  readr::read_csv(meteo_fl, col_types = 'Dddddddd') %>% #, n_max = n_max) %>%
     mutate(Rain = case_when(Snow > 0 ~ 0, TRUE ~ Rain))
 }

@@ -17,15 +17,15 @@ write_glm3_nml_files <- function(nml_list_rds, nml_edits, site_ids, base_nml, nm
 
       # calculate, add, and remove arguments
       nml_args <- append(nml_args, list(
-        sim_name = nml_args$site_id,
+        sim_name = gsub('nhdhr', nml_args$site_name, nml_args$site_id),
         nsave = 24, # use nsave = 24 for daily output or 1 for hourly
-        start = '1979-04-01',
-        stop = '2018-12-31',
+        start = '1979-01-02',
+        stop = '2020-12-11',
         max_layers = max(30, ceiling(7 * nml_args$lake_depth)),
         bsn_vals = length(nml_args$H),
         the_depths = c(0, floor(nml_args$lake_depth * 100)/100)
       ))
-      nml_args$site_id <- NULL # removed after copying this info to sim_name above
+      nml_args$site_name <- nml_args$site_id <- NULL # removed after copying this info to sim_name above
 
       # Cap the number of H and A values at 200 apiece because if I don't subset, I get errors like this when running GLM:
       #   Error. H and A in morphometry must be monotonically increasing

@@ -21,7 +21,7 @@ p2 <- list(
     p2_meteo,
     munge_meteo(
       meteo_fl = p1_meteo,
-      n_max = 14975), # TODO: when the meteo date range changes, update this number
+      n_max = 15320), # TODO: when the meteo date range changes, update this number
     pattern = map(p1_meteo),
     format = 'fst',
     iteration = 'list'
