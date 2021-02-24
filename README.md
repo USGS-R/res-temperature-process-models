@@ -153,7 +153,7 @@ docker-compose up
 
 ### Installing GLM locally
 
-Ideally you'd use the Shifter/Docker container, but if you really must run GLM3 on a local computer...
+The Shifter/Docker container should have reproducibility benefits but adds layers of complexity and may sometimes be slower (at least for Docker). To install run GLM3 on a local computer:
 
 1. Install home-brew (https://brew.sh/)
 ```sh

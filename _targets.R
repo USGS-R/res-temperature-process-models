@@ -1,6 +1,6 @@
 library(targets)
 library(tarchetypes)
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
 tar_option_set(packages = 'tidyverse', error = 'continue')
 source('lib/src/hash_files.R')
 
