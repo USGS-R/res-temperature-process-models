@@ -1,14 +1,16 @@
 source('1_fetch/src/sbtools_utils.R')
 
 data_release_sb_id <- '6006eec9d34e592d867201d0'
+sb_status_csv_name <- '1_fetch/log/sb_status.csv'
 
 p1 <- list(
   tar_target(
     sb_status_csv,
     update_sb_status(
       sb_id = data_release_sb_id,
-      status_file = '1_fetch/log/sb_status.csv', # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
-      wait_interval = as.difftime(1, units='secs')),
+      status_file = sb_status_csv_name, # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
+      wait_interval = as.difftime(1, units='days'), # make this huge to ~never check
+      ignore_files = c('fgdc_metadata.xml', 'reservoir_polygons.zip')),
     cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
     format = 'file',
     packages = 'sbtools'
@@ -31,7 +33,7 @@ p1 <- list(
         names = basename(ltmp_filenames),
         destinations = ltmp_filenames,
         outdated = sb_outdated, # can set outdated = ltmp_filenames to make this a target that only rebuilds on force
-        status_file = sb_status_csv),
+        status_file = sb_status_csv_name), # rely on a non-target string so that updates to sb_status_csv don't trigger rebuilds here
       packages = c('sbtools'),
       format = 'file')
   ),
@@ -48,7 +50,7 @@ p1 <- list(
       names = basename(p1_meteo_filenames),
       destinations = p1_meteo_filenames,
       outdated = sb_outdated, # can set outdated = ltmp_filenames to make this a target that only rebuilds on force
-      status_file = sb_status_csv),
+      status_file = sb_status_csv_name), # rely on a non-target string so that updates to sb_status_csv don't trigger rebuilds here
     packages = c('sbtools'),
     format = 'file',
     pattern = map(p1_meteo_filenames)
@@ -63,13 +65,22 @@ p1 <- list(
   tar_target(
     p1_nml_edits,
     list(
-      nhdhr_151957878 = list(# Pepacton
+      nhdhr_151957878 = list(
+        site_name = 'Pepacton',
         crest_elev = 390.0 # from Sam's slides on 1/28/21
       ),
-      nhdhr_120022743 = list(# Cannonsville
+      nhdhr_120022743 = list(
+        site_name = 'Cannonsville',
         crest_elev = 350.6 # from Sam's slides on 1/28/21
       )
     )
+  ),
+
+  tar_target(
+    p1_inflows,
+    get_inflow_data(
+      p1_reservoir_ids
     )
   )
+
 )
