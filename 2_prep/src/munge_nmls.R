@@ -1,8 +1,6 @@
-write_glm3_nml_files <- function(nml_list_rds, nml_edits, site_ids, base_nml, nml_dir, nml_hashes_yml){
+write_glm3_nml_files <- function(nml_list_rds, nml_edits, site_ids, base_nml){
   nml_list <- readRDS(nml_list_rds)
-  nml_base <- read_nml(base_nml)
 
-  if(!dir.exists(nml_dir)) dir.create(nml_dir, recursive=TRUE)
   if(!dir.exists(dirname(nml_hashes_yml))) dir.create(dirname(nml_hashes_yml), recursive=TRUE)
 
   # nml_files <-
@@ -41,21 +39,12 @@ write_glm3_nml_files <- function(nml_list_rds, nml_edits, site_ids, base_nml, nm
       }
 
       # merge into base nml, checking arguments along the way
-      #nml_template <- read_nml(GLM3r::nml_template_path())
-      nml_template <- nml_base
+      nml_template <- read_nml(base_nml)
       nml_obj <- set_nml(nml_template, arg_list = nml_args)
-
-      # # write this site-specific nml file
-      # file_out <- file.path(nml_dir, paste0(nml_args$sim_name, '_glm3.nml'))
-      # write_nml(glm_nml = nml_obj, file = file_out)
-      # return(file_out)
 
       # return the nml object
       return(nml_obj)
     })
-
-  # # write a file summarizing the nml files; return the name of the summary file
-  # hash_files(files = nml_files, out_yml = nml_hashes_yml)
 
   # return the list of nml objects
   return(nml_objs)

@@ -5,7 +5,7 @@ p3 <- list(
     # glm output files generated with local (Mac) GLM
     p3_glm_mac_out,
     run_glm3_model(
-      sim_dir = 'tmp/mac',
+      sim_dir = 'tmp/mac', # tmp because at some point we won't want to keep the raw (and large) model outputs
       site_id = p1_reservoir_ids,
       nml_obj = p2_nml_objects,
       meteo_obj = p2_meteo,
