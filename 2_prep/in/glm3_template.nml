@@ -106,25 +106,31 @@
 &inflow
    num_inflows = 0
    names_of_strms = 'Riv1','Riv2'
-   subm_flag = .false.
+   !subm_flag = .false.
    strm_hf_angle = 65, 65
    strmbd_slope = 2, 2
    strmbd_drag = 0.016, 0.016
-   inflow_factor = 1, 1
+   !coef_inf_entrain = 0.
+   !inflow_factor = 1, 1
    inflow_fl = 'bcs/inflow_1.csv','bcs/inflow_2.csv'
    inflow_varnum = 4
    inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','SIL_rsi','NIT_amm','NIT_nit','PHS_frp','OGM_don','OGM_pon','OGM_dop','OGM_pop','OGM_doc','OGM_poc','PHY_green','PHY_crypto','PHY_diatom'
+   time_fmt = 'YYYY-MM-DD hh:mm:ss'
 /
 &outflow
    num_outlet = 0
-   flt_off_sw = .false.
-   outl_elvs = 1
-   bsn_len_outl = 5
-   bsn_wid_outl = 5
    outflow_fl = 'bcs/outflow.csv'
+   !time_fmt = 'YYYY-MM-DD hh:mm:ss'
    outflow_factor = 0.8
-   crest_width = 100
-   crest_factor = 0.61
+   !outflow_thick_limit = 100
+   !single_layer_draw = .false.
+   flt_off_sw = .false.
+   outlet_type = 1
+   outl_elvs = 1
+   !bsn_len_outl = 5
+   !bsn_wid_outl = 5
+   !crest_width = 100
+   !crest_factor = 0.61
 /
 &snowice
    dt_iceon_avg = 0.2
