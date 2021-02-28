@@ -1,5 +1,6 @@
 source('1_fetch/src/sbtools_utils.R')
 source('1_fetch/src/zip_to_sf.R')
+source('1_fetch/src/build_nml_edits.R')
 
 data_release_sb_id <- '6006eec9d34e592d867201d0'
 sb_status_csv_name <- '1_fetch/log/sb_status.csv'
@@ -11,7 +12,7 @@ p1 <- list(
       sb_id = data_release_sb_id,
       status_file = sb_status_csv_name, # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
       wait_interval = as.difftime(1, units='days'), # make this huge to ~never check
-      ignore_files = c('fgdc_metadata.xml')),
+      ignore_files = c('fgdc_metadata.xml', 'reservoir_polygons.zip')),
     cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
     format = 'file',
     packages = 'sbtools'
@@ -20,17 +21,18 @@ p1 <- list(
   # source('1_fetch/src/sbtools_utils.R'); read_sb_status(tar_read(sb_status_csv))
   tar_target(sb_outdated, get_sb_outdated(sb_status_csv)),
 
-  # Download and unzip the reservoir polygons
-  tar_target(
-    p1_reservoir_polygons,
-    sb_download_if_needed(
-      sb_id = data_release_sb_id,
-      names = 'reservoir_polygons.zip',
-      destinations = '1_fetch/out/reservoir_polygons.zip',
-      outdated = sb_outdated,
-      status_file = sb_status_csv_name) %>%
-      zip_to_sf()
-  ),
+  # Download and unzip the reservoir polygons...but we're not directly using
+  # these after all. If uncommenting, remove reservoir_polygons.zip from the ignore_files() argument to update_sb_status
+  # tar_target(
+  #   p1_reservoir_polygons,
+  #   sb_download_if_needed(
+  #     sb_id = data_release_sb_id,
+  #     names = 'reservoir_polygons.zip',
+  #     destinations = '1_fetch/out/reservoir_polygons.zip',
+  #     outdated = sb_outdated,
+  #     status_file = sb_status_csv_name) %>%
+  #     zip_to_sf()
+  # ),
 
   # Download temperatures, water levels, and GLM config files from ScienceBase,
   # using static branching over several files with prefix ltmp
@@ -51,13 +53,17 @@ p1 <- list(
       format = 'file')
   ),
 
-  # Download meteo files from ScienceBase, using dynamic branching over the filenames mentioned in p1_ltmp_nml_list.rds
+  # Download meteo files from ScienceBase, using dynamic branching over the
+  # filenames mentioned in p1_ltmp_nml_list.rds
   tar_target(
     p1_meteo_filenames,
-    readRDS(p1_ltmp_nml_list.rds) %>% purrr::map_chr('meteo_fl') %>% unique() %>% file.path('1_fetch/out', .)
+    readRDS(p1_ltmp_nml_list.rds) %>%
+      purrr::map_chr('meteo_fl') %>%
+      unique() %>%
+      file.path('1_fetch/out', .)
   ),
   tar_target(
-    p1_meteo,
+    p1_meteo_files,
     sb_download_if_needed(
       sb_id = data_release_sb_id,
       names = basename(p1_meteo_filenames),
@@ -69,12 +75,18 @@ p1 <- list(
     pattern = map(p1_meteo_filenames)
   ),
 
-  # Extract the reservoir IDs from the nml list
+  # Specify the source of inflow-outflow data (SNTemp predictions, currently)
+  # TODO - use res-temperature-data-prep to transfer this file via ScienceBase
   tar_target(
-    p1_reservoir_ids,
-    readRDS(p1_ltmp_nml_list.rds) %>% purrr::map_chr('site_id') %>% unname()
-  ),
+    p1_inout_feather,
+    '../delaware-model-prep/9_collaborator_data/res/res_io_sntemp.feather',
+    format = 'file'),
 
+  # Get reservoir releases from SB at https://www.sciencebase.gov/catalog/item/5f6a287382ce38aaa2449131
+  # Because this is a different SB item from the res-temperature-data-sharing item, we can't pull only if needed very conveniently.
+  # TODO: pull reservoir release data from Sam's repo, add to res-temperature-data-sharing pipeline, then pull from there to here
+  # sb_id = '5f6a287382ce38aaa2449131'
+  # 'reservoir_releases.csv'
   tar_target(
     p1_nml_edits,
     list(
