@@ -1,12 +1,16 @@
-run_glm3_model <- function(sim_dir, site_id, nml_obj, meteo_obj, export_fl){ # kw_data,
+run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, meteo_xwalk, inout_obj, export_fl){ # kw_data,
   # prepare to write inputs and results locally for quick I/O
   site_dir <- file.path(sim_dir, site_id)
   dir.create(site_dir, recursive=TRUE, showWarnings=FALSE)
   # on.exit(unlink(site_dir, recursive = TRUE))
 
-  # write the nml and meteo data to site_dir
+
+  # write the nml to site_dir
   glmtools::write_nml(nml_obj, file.path(site_dir, 'glm3.nml'))
+
+  # write the meteo data to site_dir
   meteo_fl <- glmtools::get_nml_value(nml_obj, arg_name = 'meteo_fl')
+  meteo_obj <- tar_read_raw(meteo_xwalk$meteo_branch)
   readr::write_csv(meteo_obj, file.path(site_dir, meteo_fl))
 
   # munge the clarity (kw) data and write to site_dir
