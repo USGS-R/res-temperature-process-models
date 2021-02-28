@@ -88,24 +88,28 @@ p1 <- list(
   # sb_id = '5f6a287382ce38aaa2449131'
   # 'reservoir_releases.csv'
   tar_target(
-    p1_nml_edits,
-    list(
-      nhdhr_151957878 = list(
-        site_name = 'Pepacton',
-        crest_elev = 390.0 # from Sam's slides on 1/28/21
-      ),
-      nhdhr_120022743 = list(
-        site_name = 'Cannonsville',
-        crest_elev = 350.6 # from Sam's slides on 1/28/21
-      )
-    )
+    p1_releases_csv,
+    {
+      dest <- '1_fetch/out/reservoir_releases.csv'
+      sb_secret_login()
+      sbtools::item_file_download(
+        sb_id = '5f6a287382ce38aaa2449131',
+        names = basename(dest),
+        destinations = dest,
+        overwrite_file = TRUE)
+      return(dest)
+    },
+    format = 'file'
   ),
 
+  # Hand-code + calculate a set of edits to make to the nmls for each site.
+  # These edits may ultimately fit better within the lake-temperature-model-prep
+  # or delaware-model-prep pipelines
   tar_target(
-    p1_inflows,
-    get_inflow_data(
-      p1_reservoir_ids
-    )
+    p1_nml_edits,
+    build_nml_edits(
+      p1_inout_feather,
+      p1_releases_csv),
+    iteration = 'list'
   )
-
 )
