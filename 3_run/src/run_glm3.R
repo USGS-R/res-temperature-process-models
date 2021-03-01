@@ -27,13 +27,13 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, releases_obj, 
   )
   inouts_obj %>%
     filter(direction == 'inflow') %>%
-    filter(date >= start_date, date <= stop_date) %>%
+    filter(time >= start_date, time <= stop_date) %>%
     select(-direction) %>%
     left_join(inflow_files, by='seg_id_nat') %>%
     group_by(seg_id_nat, inflow_fl) %>%
-    dplyr::group_walk(function(inout_data, group_keys) {
+    dplyr::group_walk(function(inflow_data, group_keys) {
       write_csv(
-        inout_data %>% select(date, flow, temp),
+        inflow_data %>% select(time, flow, temp),
         file = file.path(site_dir, paste0(group_keys$inflow_fl)))
     })
 
@@ -43,12 +43,12 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, releases_obj, 
     release_type = stringr::str_extract(outflow_fl, pattern='(?<=in/out_).+(?=.csv)')
   )
   releases_obj %>%
-    filter(date >= start_date, date <= stop_date) %>%
+    filter(time >= start_date, time <= stop_date) %>%
     left_join(outflow_files, by='release_type') %>%
     group_by(release_type, outflow_fl) %>%
-    dplyr::group_walk(function(inout_data, group_keys) {
+    dplyr::group_walk(function(release_data, group_keys) {
       write_csv(
-        inout_data %>% select(date, flow),
+        release_data %>% select(time, flow),
         file = file.path(site_dir, paste0(group_keys$outflow_fl)))
     })
 

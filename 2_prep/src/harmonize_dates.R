@@ -1,8 +1,8 @@
 find_shared_date_range <- function(meteo, inouts, releases) {
   # find the unique date ranges for each data file type
   meteo_range <- purrr::map_df(meteo, ~ tibble(start=min(.$time), stop=max(.$time))) %>% distinct()
-  inouts_range <- purrr::map_df(inouts, ~ tibble(start=min(.$date), stop=max(.$date))) %>% distinct()
-  releases_range <- purrr::map_df(releases, ~ tibble(start=min(.$date), stop=max(.$date))) %>% distinct()
+  inouts_range <- purrr::map_df(inouts, ~ tibble(start=min(.$time), stop=max(.$time))) %>% distinct()
+  releases_range <- purrr::map_df(releases, ~ tibble(start=min(.$time), stop=max(.$time))) %>% distinct()
 
   # we could support different date ranges for each reservoir, but since we're
   # not currently doing that, at least notice when date ranges differ so we can
