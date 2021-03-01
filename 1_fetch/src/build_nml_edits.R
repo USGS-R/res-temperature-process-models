@@ -1,5 +1,8 @@
 build_nml_edits <- function(inout_feather, releases_csv) {
 
+  # input dir where we'll plan to write all the input files (for inflows and outflows and meteo data)
+  input_dir <- 'in'
+
   # summarize the inout data file for automatically populating some fields
   # below, though we may choose to revise some of those fields later (e.g., use
   # a unique strmbd_slope for each inflow)
@@ -70,21 +73,21 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       strmbd_drag    = rep(0.016, nrow(pep_inflows)),
       # coef_inf_entrain = 0.
       # inflow_factor  = rep(1, nrow(pep_inflows)), # default is 1
-      inflow_fl      = file.path('inout', sprintf('in_%s.csv', pep_inflows$seg_id_nat)),
+      inflow_fl      = file.path(input_dir, sprintf('in_%s.csv', pep_inflows$seg_id_nat)),
       inflow_varnum  = 2,
       inflow_vars    = c('FLOW', 'TEMP'),
       time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss'
 
       # Outflow info
       num_outlet = { stopifnot(nrow(pep_releases) == 3); 3 },
-      outflow_fl = file.path('inout', sprintf('out_%s.csv', pep_releases$release_type)),
+      outflow_fl = file.path(input_dir, sprintf('out_%s.csv', pep_releases$release_type)),
       # time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss' # duplicated in &inflow and &outflow sections
       outflow_factor = rep(1, 3),
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       flt_off_sw = c(FALSE, TRUE, TRUE),
       outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(343, 390, 390) # 343 from "release" in Sam's slides; 390 from crest elevation
+      outl_elvs = c(343, 380, 380) # 343 from "release" in Sam's slides; 390 from crest elevation
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
@@ -107,21 +110,21 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       strmbd_drag    = rep(0.016, nrow(can_inflows)),
       # coef_inf_entrain = 0.
       # inflow_factor  = rep(1, nrow(can_inflows)), # default is 1
-      inflow_fl      = file.path('inout', sprintf('in_%s.csv', can_inflows$seg_id_nat)),
+      inflow_fl      = file.path(input_dir, sprintf('in_%s.csv', can_inflows$seg_id_nat)),
       inflow_varnum  = 2,
       inflow_vars    = c('FLOW', 'TEMP'),
       time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss'
 
       # Outflow info
       num_outlet = { stopifnot(nrow(can_releases) == 3); 3 },
-      outflow_fl = file.path('inout', sprintf('out_%s.csv', can_releases$release_type)),
+      outflow_fl = file.path(input_dir, sprintf('out_%s.csv', can_releases$release_type)),
       # time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss' # duplicated in &inflow and &outflow sections
       outflow_factor = rep(1, 3),
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       flt_off_sw = c(FALSE, TRUE, TRUE),
       outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(311, 350.5, 350.5) # 311 from "release" in Sam's slides; 350.5 from crest elevation
+      outl_elvs = c(311, 340.5, 340.5) # 311 from "release" in Sam's slides; 350.5 from crest elevation
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
