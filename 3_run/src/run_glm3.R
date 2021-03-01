@@ -1,17 +1,56 @@
-run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, meteo_xwalk, inout_obj, export_fl){ # kw_data,
+run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, releases_obj, meteo_xwalk, inout_obj, export_fl){ # kw_data,
   # prepare to write inputs and results locally for quick I/O
   site_dir <- file.path(sim_dir, site_id)
   dir.create(site_dir, recursive=TRUE, showWarnings=FALSE)
   # on.exit(unlink(site_dir, recursive = TRUE))
 
+  # extract the start and stop dates from nml
+  start_date <- as.Date(nml_obj$time$start)
+  stop_date <- as.Date(nml_obj$time$stop)
 
   # write the nml to site_dir
   glmtools::write_nml(nml_obj, file.path(site_dir, 'glm3.nml'))
 
-  # write the meteo data to site_dir
+  # write the meteo data to within the site_dir
   meteo_fl <- glmtools::get_nml_value(nml_obj, arg_name = 'meteo_fl')
   meteo_obj <- tar_read_raw(meteo_xwalk$meteo_branch)
-  readr::write_csv(meteo_obj, file.path(site_dir, meteo_fl))
+  meteo_dest <- file.path(site_dir, meteo_fl)
+  dir.create(dirname(meteo_dest), showWarnings=FALSE)
+  meteo_obj %>%
+    filter(time >= start_date, time <= stop_date) %>%
+    readr::write_csv(file.path(site_dir, meteo_fl))
+
+  # write the inflows to within the site_dir
+  inflow_files <- tibble(
+    seg_id_nat = strsplit(glmtools::get_nml_value(nml_obj, 'names_of_strms'), split=',')[[1]],
+    inflow_fl = strsplit(glmtools::get_nml_value(nml_obj, 'inflow_fl'), split=',')[[1]]
+  )
+  inouts_obj %>%
+    filter(direction == 'inflow') %>%
+    filter(date >= start_date, date <= stop_date) %>%
+    select(-direction) %>%
+    left_join(inflow_files, by='seg_id_nat') %>%
+    group_by(seg_id_nat, inflow_fl) %>%
+    dplyr::group_walk(function(inout_data, group_keys) {
+      write_csv(
+        inout_data %>% select(date, flow, temp),
+        file = file.path(site_dir, paste0(group_keys$inflow_fl)))
+    })
+
+  # write the outflows to within the site_dir
+  outflow_files <- tibble(
+    outflow_fl = strsplit(glmtools::get_nml_value(nml_obj, 'outflow_fl'), split=',')[[1]],
+    release_type = stringr::str_extract(outflow_fl, pattern='(?<=in/out_).+(?=.csv)')
+  )
+  releases_obj %>%
+    filter(date >= start_date, date <= stop_date) %>%
+    left_join(outflow_files, by='release_type') %>%
+    group_by(release_type, outflow_fl) %>%
+    dplyr::group_walk(function(inout_data, group_keys) {
+      write_csv(
+        inout_data %>% select(date, flow),
+        file = file.path(site_dir, paste0(group_keys$outflow_fl)))
+    })
 
   # munge the clarity (kw) data and write to site_dir
   # start <- get_nml_value(nml_obj, 'start') %>% as.Date()
