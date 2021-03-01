@@ -1,12 +1,8 @@
-#' @param res_ids the IDs to include in the munged nml list; assumed to already
-#'   correspond 1:1 with the inouts list, and used to subset the nml_list_rds
-#'   and nml_edits list here.
-munge_nmls <- function(nml_list_rds, nml_edits, inouts, res_ids, base_nml){
+#' @param res_ids the IDs to include in the munged nml list; used to subset the
+#'   nml_list_rds and nml_edits list here.
+munge_nmls <- function(nml_list_rds, nml_edits, start_stop, res_ids, base_nml){
   nml_list <- readRDS(nml_list_rds)[res_ids]
   nml_edits <- nml_edits[res_ids] # this subsetting isn't strictly necessary because we'll extract elements 1x1 below, but it keeps the working data smaller
-
-  # add res names to inouts list elements
-  inouts <- setNames(inouts, res_ids)
 
   # create the munged nml objects
   nml_objs <- nml_list %>%
@@ -22,13 +18,16 @@ munge_nmls <- function(nml_list_rds, nml_edits, inouts, res_ids, base_nml){
       nml_args <- append(nml_args, list(
         sim_name = gsub('nhdhr', nml_args$site_name, nml_args$site_id),
         nsave = 24, # use nsave = 24 for daily output or 1 for hourly
-        start = '1979-01-02',
-        stop = '2020-12-11',
+        start = format(start_stop[['start']], '%Y-%m-%d'),
+        stop = format(start_stop[['stop']], '%Y-%m-%d'),
         max_layers = max(30, ceiling(7 * nml_args$lake_depth)),
         bsn_vals = length(nml_args$H),
         the_depths = c(0, floor(nml_args$lake_depth * 100)/100)
       ))
       nml_args$site_name <- nml_args$site_id <- NULL # removed after copying this info to sim_name above
+      # move the meteo filepath into the same input directory we're using for inflows and outflows
+      input_dir <- unique(dirname(nml_args$outflow_fl))
+      nml_args$meteo_fl <- file.path(input_dir, nml_args$meteo_fl)
 
       # Calculate Loutf and Woutf (vectorized for multiple outl_elvs)
       # LWoutf <- calc_LWoutf(H=nml_args$H, A=nml_args$A, Eoutf = nml_args$outl_elvs, Lcrest = nml_args$bsn_len, nml_args$bsn_wid)
