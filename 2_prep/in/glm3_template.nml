@@ -38,7 +38,7 @@
    num_days = 150
 /
 &output
-   out_dir = 'output'
+   out_dir = 'out'
    out_fn = 'output'
    nsave = 24
    csv_lake_fname = 'lake'
