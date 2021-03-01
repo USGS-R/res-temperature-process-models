@@ -8,7 +8,10 @@ p2 <- list(
   # p2 and subsequent phases
   tar_target(
     p2_reservoir_ids,
-    readRDS(p1_ltmp_nml_list.rds) %>% purrr::map_chr('site_id') %>% .[c(1,1,2)]
+    readRDS(p1_ltmp_nml_list.rds) %>%
+      purrr::map_chr('site_id') %>%
+      {setNames(., purrr::map_chr(p1_nml_edits, 'site_name')[.])} %>% # add layperson reservoir names to the vector
+      .[] # .[c(1,1,2)] # subset/customize the list if desired
   ),
   # Identify the set of meteo files corresponding to the [potentially subsetted] p2_reservoir_ids
   tar_target(
