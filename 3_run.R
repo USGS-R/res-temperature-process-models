@@ -5,12 +5,13 @@ p3 <- list(
 
   tar_target(
     # glm output files generated with local (Mac) GLM
-    p3_glm_mac_out,
+    p3_glm,
     run_glm3_model(
-      sim_dir = 'tmp/mac', # tmp because at some point we won't want to keep the raw (and large) model outputs
+      sim_dir = 'tmp/io', # tmp because at some point we won't want to keep the raw (and large) model outputs
       site_id = p2_reservoir_ids,
       nml_obj = p2_nml_objects,
       inouts_obj = p2_inouts,
+      releases_obj = p2_releases,
       # Iterating on p2_meteo_xwalk is special: Whereas with site_id, nml_obj,
       # and inouts_obj we're iterating over the data, here we're iterating over
       # rows of a descriptive table instead. The currentness of the table
@@ -22,8 +23,8 @@ p3 <- list(
       # actual data.
       meteo_xwalk = p2_meteo_xwalk,
       export_fl = sprintf('3_run/out/mac/%s.feather', p2_reservoir_ids)),
-    packages = c('glmtools'),
-    pattern = map(p2_reservoir_ids, p2_nml_objects, p2_inouts, p2_meteo_xwalk))
+    packages = c('glmtools', 'GLM3r'),
+    pattern = map(p2_reservoir_ids, p2_nml_objects, p2_inouts, p2_releases, p2_meteo_xwalk))
 
   # tar_target(
   #   p2_glm,
