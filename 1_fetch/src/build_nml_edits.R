@@ -109,7 +109,7 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       strmbd_slope   = rep(0.5, nrow(can_inflows)),
       strmbd_drag    = rep(0.016, nrow(can_inflows)),
       # coef_inf_entrain = 0.
-      inflow_factor  = rep(1, nrow(can_inflows)), # default should be 1 but values seem to be required anyway
+      inflow_factor  = rep(1.5, nrow(can_inflows)), # default should be 1 but values seem to be required anyway
       inflow_fl      = file.path(input_dir, sprintf('in_%s.csv', can_inflows$seg_id_nat)),
       inflow_varnum  = 2,
       inflow_vars    = c('FLOW', 'TEMP'),
