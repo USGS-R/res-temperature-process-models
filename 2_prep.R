@@ -85,13 +85,13 @@ p2 <- list(
   # subset to this range at GLM runtime
   tar_target(
     p2_date_range,
-    # find_shared_date_range(
-    #   meteo = p2_meteo,
-    #   inouts = p2_inouts,
-    #   releases = p2_releases)
-    tibble(
-      start = as.Date('2004-01-01'),
-      stop = as.Date('2005-01-01'))
+    find_shared_date_range(
+      meteo = p2_meteo,
+      inouts = p2_inouts,
+      releases = p2_releases)
+    # tibble(
+    #   start = as.Date('2004-01-01'),
+    #   stop = as.Date('2005-01-01'))
   ),
 
   # Create a list of complete nml objects. Transform a single file of all
