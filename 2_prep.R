@@ -69,6 +69,17 @@ p2 <- list(
   ),
   # Find the branch and reservoir names corresponding to each inouts file
   # tar_target(p2_inouts_names, setNames(names(p2_inouts), p2_reservoir_ids)),
+  tar_target(
+    p2_releases,
+    munge_releases(
+      releases_csv = p1_releases_csv,
+      res_id = p2_reservoir_ids),
+    pattern = map(p2_reservoir_ids),
+    packages = c('arrow'),
+    format = 'fst',
+    iteration = 'list'
+  ),
+
   # Identify the maximum date range that's completely covered by the input
   # driver files, or override with a shorter time period. Data objects will be
   # subset to this range at GLM runtime

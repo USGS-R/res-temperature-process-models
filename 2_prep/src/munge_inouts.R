@@ -5,6 +5,8 @@ munge_inouts <- function(inout_feather, res_id) {
     return()
 }
 
-get_names <- function(x) {
-  return(names(x))
+munge_releases <- function(releases_csv, res_id) {
+  readr::read_csv(releases_csv, col_types=cols()) %>%
+    filter(reservoir == names(res_id)) %>%
+    mutate(flow=release_volume_cfs*0.028316847) # convert from CFS to CMS
 }
