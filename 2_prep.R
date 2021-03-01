@@ -1,6 +1,7 @@
 source('2_prep/src/munge_nmls.R')
 source('2_prep/src/munge_meteo.R')
 source('2_prep/src/munge_inouts.R')
+source('2_prep/src/harmonize_dates.R')
 
 p2 <- list(
   # Set the list of reservoirs to proceed with. As currently coded, we extract the reservoir IDs from the nml list,
@@ -25,13 +26,6 @@ p2 <- list(
       p1_meteo_files[match(p2_meteo_filenames, p2_meteo_filenames)]
     }
   ),
-  # tar_target(
-  #   p2_date_range,
-  #   find_shared_date_range(
-  #
-  #     p2_reservoir_ids
-  #   )
-  # ),
 
   # Create a list of munged meteo tables, one per NLDAS cell. Here we map over
   # the meteo files, readin and munging each file into an NLDAS-cell-specific
@@ -40,8 +34,7 @@ p2 <- list(
     p2_meteo,
     munge_meteo(
       meteo_fl = p2_meteo_files,
-      n_max = 15320, # TODO: when the meteo date range changes, update this number
-      keep_dates = p2_date_range),
+      n_max = 15320), # TODO: when the meteo date range changes, update this number
     pattern = map(p2_meteo_files),
     format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
     iteration = 'list'
@@ -76,6 +69,19 @@ p2 <- list(
   ),
   # Find the branch and reservoir names corresponding to each inouts file
   # tar_target(p2_inouts_names, setNames(names(p2_inouts), p2_reservoir_ids)),
+  # Identify the maximum date range that's completely covered by the input
+  # driver files, or override with a shorter time period. Data objects will be
+  # subset to this range at GLM runtime
+  tar_target(
+    p2_date_range,
+    # find_shared_date_range(
+    #   meteo = p2_meteo,
+    #   inouts = p2_inouts,
+    #   releases = p2_releases)
+    tibble(
+      start = as.Date('2004-01-01'),
+      stop = as.Date('2005-01-01'))
+  ),
 
   # Create a list of complete nml objects. Transform a single file of all
   # reservoirs to a single list of all reservoirs (subset to p2_reservoir_ids),
@@ -86,7 +92,7 @@ p2 <- list(
     munge_nmls(
       nml_list_rds = p1_ltmp_nml_list.rds,
       nml_edits = p1_nml_edits,
-      inouts = p2_inouts,
+      start_stop = p2_date_range,
       res_ids = p2_reservoir_ids,
       base_nml = p2_glm_template.nml),
     packages = c('glmtools'),
