@@ -55,12 +55,12 @@ p2 <- list(
   ),
 
   # Create a list of munged inputs and outputs, one table per reservoir. Map
-  # over the reservoir ids to subset p1_inout_feather into individual tables
+  # over the reservoir ids to subset p1_io_res_io_sntemp.feather into individual tables
   # which `targets` then can present as an iterable list
   tar_target(
     p2_inouts,
     munge_inouts(
-      inout_feather = p1_inout_feather,
+      inout_feather = p1_io_res_io_sntemp.feather,
       res_id = p2_reservoir_ids),
     pattern = map(p2_reservoir_ids),
     packages = c('arrow'),

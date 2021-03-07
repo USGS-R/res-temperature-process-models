@@ -75,18 +75,36 @@ p1 <- list(
     pattern = map(p1_meteo_filenames)
   ),
 
+
+  # Download inflow-outflow data (just observations and SNTemp predictions,
+  # currently) from ScienceBase, using static branching over several files
+  tar_map(
+    values = tibble(
+      io_filenames = file.path('1_fetch/out', c('res_io_obs.feather', 'res_io_sntemp.feather')),
+      target_names = basename(io_filenames)),
+    names = starts_with('target_names'),
+    tar_target(
+      p1_io,
+      sb_download_if_needed(
+        sb_id = data_release_sb_id,
+        names = basename(io_filenames),
+        destinations = io_filenames,
+        outdated = sb_outdated, # can set outdated = io_filenames to make this a target that only rebuilds on force
+        status_file = sb_status_csv_name), # rely on a non-target string so that updates to sb_status_csv don't trigger rebuilds here
+      packages = c('sbtools'),
+      format = 'file')
+  ),
+
   # Specify the source of inflow-outflow data (SNTemp predictions, currently)
   # TODO - use res-temperature-data-prep to transfer this file via ScienceBase
-  tar_target(
-    p1_inout_feather,
-    '../delaware-model-prep/9_collaborator_data/res/res_io_sntemp.feather',
-    format = 'file'),
+  # tar_target(
+  #   p1_inout_feather,
+  #   '../delaware-model-prep/9_collaborator_data/res/res_io_sntemp.feather',
+  #   format = 'file'),
 
   # Get reservoir releases from SB at https://www.sciencebase.gov/catalog/item/5f6a287382ce38aaa2449131
   # Because this is a different SB item from the res-temperature-data-sharing item, we can't pull only if needed very conveniently.
   # TODO: pull reservoir release data from Sam's repo, add to res-temperature-data-sharing pipeline, then pull from there to here
-  # sb_id = '5f6a287382ce38aaa2449131'
-  # 'reservoir_releases.csv'
   tar_target(
     p1_releases_csv,
     {
@@ -108,7 +126,7 @@ p1 <- list(
   tar_target(
     p1_nml_edits,
     build_nml_edits(
-      p1_inout_feather,
+      p1_io_res_io_sntemp.feather,
       p1_releases_csv),
     iteration = 'list'
   )
