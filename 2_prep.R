@@ -57,6 +57,8 @@ p2 <- list(
   # Create a list of munged inputs and outputs, one table per reservoir. Map
   # over the reservoir ids to subset p1_io_res_io_sntemp.feather into individual tables
   # which `targets` then can present as an iterable list
+  # PS - Here's how you could find the branch and reservoir names corresponding to each inouts file:
+  # tar_target(p2_inouts_names, setNames(names(p2_inouts), p2_reservoir_ids)),
   tar_target(
     p2_inouts,
     munge_inouts(
@@ -67,8 +69,8 @@ p2 <- list(
     format = 'fst',
     iteration = 'list'
   ),
-  # Find the branch and reservoir names corresponding to each inouts file
-  # tar_target(p2_inouts_names, setNames(names(p2_inouts), p2_reservoir_ids)),
+
+  # Read in the release data
   tar_target(
     p2_releases,
     munge_releases(
@@ -89,6 +91,7 @@ p2 <- list(
       meteo = p2_meteo,
       inouts = p2_inouts,
       releases = p2_releases)
+    # Or comment out the above command and use this override instead:
     # tibble(
     #   start = as.Date('2004-01-01'),
     #   stop = as.Date('2005-01-01'))
