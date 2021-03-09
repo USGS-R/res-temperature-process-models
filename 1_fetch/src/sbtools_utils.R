@@ -12,16 +12,25 @@ sb_secret_login <- function(){
   }
 }
 
-#' @return a tibble with columns filename (as on SB), date_uploaded (as on SB),
-#'   date_checked (time of query to SB), and fetch_datestamp (date_uploaded of
-#'   the file on SB at the time we fetched it into this repo)
+#' @return The read-in contents of `status_file`: a tibble with columns
+#'   `filename` (as on SB), `date_uploaded` (as on SB), `date_checked` (time of
+#'   query to SB), and `fetch_datestamp` (date_uploaded of the file on SB at the
+#'   time we fetched it into this repo)
 read_sb_status <- function(status_file) {
   read_csv(status_file, col_types = cols(filename=col_character(), .default=col_datetime()))
 }
 
-#' @param wait_interval time to wait before querying SB again. a difftime object, e.g., `as.difftime(1, units='days')`
-#' @param update_files vector of files to update, or missing to update all
-#' @param ignore_files vector of files to omit from the status tibble
+
+#' Writes or modifies a csv file with columns `filename` (as on SB),
+#' `date_uploaded` (as on SB), `date_checked` (time of query to SB), and
+#' `fetch_datestamp` (date_uploaded of the file on SB at the time we fetched it
+#' into this repo)
+#' @param sb_id the ID of the SB item whose file information we want to query
+#' @param status_file the status information file to create/modify
+#' @param wait_interval time to wait before querying SB again. a difftime
+#'   object, e.g., `as.difftime(1, units='days')`
+#' @param update_files vector of filenames to update, or missing to update all
+#' @param ignore_files vector of filenames to omit from the status tibble
 update_sb_status <- function(sb_id, status_file, wait_interval, update_files, ignore_files=c()) {
   # get some starting status info into memory, reading in the previous status
   # information if available
