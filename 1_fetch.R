@@ -95,13 +95,6 @@ p1 <- list(
       format = 'file')
   ),
 
-  # Specify the source of inflow-outflow data (SNTemp predictions, currently)
-  # TODO - use res-temperature-data-prep to transfer this file via ScienceBase
-  # tar_target(
-  #   p1_inout_feather,
-  #   '../delaware-model-prep/9_collaborator_data/res/res_io_sntemp.feather',
-  #   format = 'file'),
-
   # Get reservoir releases from SB at https://www.sciencebase.gov/catalog/item/5f6a287382ce38aaa2449131
   # Because this is a different SB item from the res-temperature-data-sharing item, we can't pull only if needed very conveniently.
   # TODO: pull reservoir release data from Sam's repo, add to res-temperature-data-sharing pipeline, then pull from there to here
