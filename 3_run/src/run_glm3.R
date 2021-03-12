@@ -80,27 +80,9 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, releases_obj, 
       export_fl_hash = NA))
   }
 
-  # learn where the output was written
-  out_dir <- glmtools::get_nml_value(nml_obj, arg_name = 'out_dir')
-  out_basename <- paste0(glmtools::get_nml_value(nml_obj, 'out_fn'), '.nc')
-  nc_filepath <- file.path(site_dir, out_dir, out_basename)
-
-  # extract temperatures and ice estimates at regular depths
-  lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')
-  export_depths <- seq(0, lake_depth, by = 0.5)
-  temp_data <- glmtools::get_temp(nc_filepath, reference = 'surface', z_out = export_depths) %>%
-    mutate(date = as.Date(lubridate::floor_date(DateTime, 'days'))) %>% select(-DateTime)
-  ice_data <- glmtools::get_var(nc_filepath, var_name = 'hice') %>%
-    dplyr::mutate(ice = hice > 0, date = as.Date(lubridate::ceiling_date(DateTime, 'days'))) %>%
-    dplyr::select(-hice, -DateTime)
-
-  # combine ice and temperature data and write to file
-  out_dir <- dirname(export_fl)
-  if(!dir.exists(out_dir)) dir.create(out_dir, recursive=TRUE)
-  ice_data %>%
-    dplyr::left_join(temp_data, ., by = 'date') %>%
-    select(time = date, everything()) %>%
-    feather::write_feather(export_fl)
+  #' extract temperature and ice data at fixed depths (every 0.5m) and write to
+  #' a feather file
+  export_temp_ice_data(site_dir, nml_obj, export_fl)
 
   # return a 1-row tibble of information about this model run
   return(tibble(
@@ -111,3 +93,4 @@ run_glm3_model <- function(sim_dir, site_id, nml_obj, inouts_obj, releases_obj, 
     export_fl = export_fl,
     export_fl_hash = tools::md5sum(export_fl)))
 }
+
