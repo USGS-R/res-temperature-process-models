@@ -138,5 +138,5 @@
    snow_albedo_factor = 0.72
 /
 &debugging
-   disable_evap = .true.
+   disable_evap = .false.
 /

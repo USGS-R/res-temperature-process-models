@@ -1,4 +1,5 @@
 source('3_run/src/run_glm3.R')
+source('3_run/src/process_glm_output.R')
 
 p3 <- list(
 
@@ -6,7 +7,7 @@ p3 <- list(
     # glm output files generated with local (Mac) GLM
     p3_glm,
     run_glm3_model(
-      sim_dir = 'tmp/io', # tmp because at some point we won't want to keep the raw (and large) model outputs
+      sim_dir = '3_run/out/io_noevap', # eventually 'tmp/something' because at some point we won't want to keep the raw (and large) model outputs
       site_id = p2_reservoir_ids,
       nml_obj = p2_nml_objects,
       inouts_obj = p2_inouts,
@@ -21,7 +22,7 @@ p3 <- list(
       # `run_glm3_model()`, we will call `tar_read_raw(meteo_branch)` to get the
       # actual data.
       meteo_xwalk = p2_meteo_xwalk,
-      export_fl = sprintf('3_run/out/mac/%s.feather', p2_reservoir_ids)),
+      export_fl = sprintf('3_run/out/io_noevap/%s/out/exported.feather', p2_reservoir_ids)),
     packages = c('glmtools', 'GLM3r'),
     pattern = map(p2_reservoir_ids, p2_nml_objects, p2_inouts, p2_releases, p2_meteo_xwalk))
 
