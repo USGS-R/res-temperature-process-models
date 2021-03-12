@@ -86,14 +86,15 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       # flt_off_sw = c(FALSE, TRUE, TRUE), # redundant with outlet_type
-      outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(343, 0, 0) # 343 from "release" in Sam's slides; 390 from crest elevation, but floating offtakes are specified as depth relative to surface
+      outlet_type = c(1, 1, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
+      outl_elvs = c(343, 343, 0) # 343 from "release" in Sam's slides; 390 from crest elevation, but floating offtakes are specified as depth relative to surface
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
       # min_level = 376,
       # max_level = 390,
-      # max_depth = 49 # lake_depth is 60 in nml
+      # max_depth = 49, # lake_depth is 60 in nml
+      # diversion_elev = 348
     ),
     nhdhr_120022743 = list(
       site_name = 'Cannonsville',
@@ -123,14 +124,15 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       # flt_off_sw = c(FALSE, TRUE, TRUE), # redundant with outlet_type
-      outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(311, 10, 10) # 311 from "release" in Sam's slides; 350.5 from crest elevation, but floating offtakes are specified as depth relative to surface
+      outlet_type = c(1, 1, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
+      outl_elvs = c(311, 311, 0) # 311 from "release" in Sam's slides; 350.5 from crest elevation, but floating offtakes are specified as depth relative to surface
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
       # min_level = 329,
       # max_level = 351,
-      # max_depth = 52 # lake_depth is 48.76 in nml
+      # max_depth = 52, # lake_depth is 48.76 in nml
+      # diversion_elev = 315m
     )
   )
 }
