@@ -18,7 +18,7 @@ munge_nmls <- function(nml_list_rds, nml_edits, start_stop, res_ids, base_nml){
       nml_args <- append(nml_args, list(
         sim_name = gsub('nhdhr', nml_args$site_name, nml_args$site_id),
         nsave = 24, # use nsave = 24 for daily output or 1 for hourly
-        start = format(start_stop[['start']], '%Y-%m-%d'),
+        start = format(start_stop[['start']], '%Y-%m-%d'), # '2019-10-01',#
         stop = format(start_stop[['stop']], '%Y-%m-%d'),
         max_layers = max(30, ceiling(7 * nml_args$lake_depth)),
         bsn_vals = length(nml_args$H),

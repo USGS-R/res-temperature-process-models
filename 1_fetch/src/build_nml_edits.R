@@ -82,12 +82,12 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       num_outlet = { stopifnot(nrow(pep_releases) == 3); 3 },
       outflow_fl = file.path(input_dir, sprintf('out_%s.csv', pep_releases$release_type)),
       # time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss' # duplicated in &inflow and &outflow sections
-      outflow_factor = rep(1, 3),
+      outflow_factor = rep(1.1, 3),
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       # flt_off_sw = c(FALSE, TRUE, TRUE), # redundant with outlet_type
-      outlet_type = c(1, 1, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(343, 343, 0) # 343 from "release" in Sam's slides; 390 from crest elevation, but floating offtakes are specified as depth relative to surface
+      outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
+      outl_elvs = c(343, 0, 0) # 343 from "release" in Sam's slides; 390 from crest elevation, but floating offtakes are specified as depth relative to surface
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
@@ -120,12 +120,12 @@ build_nml_edits <- function(inout_feather, releases_csv) {
       num_outlet = { stopifnot(nrow(can_releases) == 3); 3 },
       outflow_fl = file.path(input_dir, sprintf('out_%s.csv', can_releases$release_type)),
       # time_fmt = 'YYYY-MM-DD', # default is 'YYYY-MM-DD hh:mm:ss' # duplicated in &inflow and &outflow sections
-      outflow_factor = rep(1, 3),
+      outflow_factor = rep(1.1, 3),
       # outflow_thick_limit = Inf?
       # single_layer_draw = FALSE
       # flt_off_sw = c(FALSE, TRUE, TRUE), # redundant with outlet_type
-      outlet_type = c(1, 1, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
-      outl_elvs = c(311, 311, 0) # 311 from "release" in Sam's slides; 350.5 from crest elevation, but floating offtakes are specified as depth relative to surface
+      outlet_type = c(1, 2, 2), # 1 = fixed outlet height (subsurface); 2 = floating offtake (over-the-top releases)
+      outl_elvs = c(311, 10, 10) # 311 from "release" in Sam's slides; 350.5 from crest elevation, but floating offtakes are specified as depth relative to surface
       # bsn_len_outl, bsn_wid_outl # hoping GLM will calculate these for us
 
       # Info from Sam's slides that's not directly used
