@@ -13,7 +13,7 @@ p1 <- list(
       status_file = sb_status_csv_name, # targets doesn't treat this argument as a file target, but it does become the filename stored by sb_status_csv
       wait_interval = as.difftime(1, units='days'), # make this huge to ~never check
       ignore_files = c('fgdc_metadata.xml', 'reservoir_polygons.zip')),
-    cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
+    # cue = tar_cue('always'), # update_sb_status always runs, but only goes to ScienceBase after waiting at least as long as "wait_interval" above
     format = 'file',
     packages = 'sbtools'
   ),
