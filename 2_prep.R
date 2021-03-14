@@ -110,5 +110,14 @@ p2 <- list(
       res_ids = p2_reservoir_ids,
       base_nml = p2_glm_template.nml),
     packages = c('glmtools'),
+    iteration = 'list'),
+
+  tar_target(
+    p2_obs_temps,
+    read_rds(p1_ltmp_temps.rds) %>%
+      filter(site_id == p2_reservoir_ids) %>%
+      select(datetime = date, depth, temp),
+    pattern = p2_reservoir_ids,
     iteration = 'list')
+
 )
