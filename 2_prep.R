@@ -61,7 +61,7 @@ p2 <- list(
   # tar_target(p2_inouts_names, setNames(names(p2_inouts), p2_reservoir_ids)),
   tar_target(
     p2_inouts,
-    munge_inouts(
+    munge_inouts_sntemp(
       inout_feather = p1_io_res_io_sntemp.feather,
       res_id = p2_reservoir_ids),
     pattern = map(p2_reservoir_ids),
