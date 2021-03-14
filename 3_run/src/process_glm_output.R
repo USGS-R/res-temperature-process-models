@@ -1,12 +1,12 @@
 #' Learn where output files can be found
-#' @param sim_dir the simulation directory for a single reservoir and single GLM
+#' @param sim_res_dir the simulation directory for a single reservoir and single GLM
 #'   model run
-#' @param nml_obj an NML object that can be read with glmtools
 #' @param file_type just one option from c('lake','depthwise','outflow','overflow')
-locate_out_files <- function(sim_dir, nml_obj, file_type=c('lake','depthwise','outflow','overflow')) {
+locate_out_files <- function(sim_res_dir, file_type=c('lake','depthwise','outflow','overflow')) {
   file_type <- match.arg(file_type)
+  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
   out_subdir <- glmtools::get_nml_value(nml_obj, arg_name = 'out_dir')
-  out_dir <- file.path(sim_dir, out_subdir)
+  out_dir <- file.path(sim_res_dir, out_subdir)
   out_files <- switch(
     file_type,
     'lake' = paste0(glmtools::get_nml_value(nml_obj, 'csv_lake_fname'), '.csv'),
@@ -17,28 +17,28 @@ locate_out_files <- function(sim_dir, nml_obj, file_type=c('lake','depthwise','o
 }
 
 #' Learn where output files can be found
-#' @param sim_dir the simulation directory for a single reservoir and single GLM
+#' @param sim_res_dir the simulation directory for a single reservoir and single GLM
 #'   model run
-#' @param nml_obj an NML object that can be read with glmtools
 #' @param file_type just one option from c('inflow','outflow')
-locate_in_files <- function(sim_dir, nml_obj, file_type=c('meteo','inflow','outflow')) {
+locate_in_files <- function(sim_res_dir, file_type=c('meteo','inflow','outflow')) {
   file_type <- match.arg(file_type)
+  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
   in_files <- switch(
     file_type,
     'meteo' = glmtools::get_nml_value(nml_obj, 'meteo_fl'),
     'inflow' = strsplit(glmtools::get_nml_value(nml_obj, 'inflow_fl'), split=',')[[1]],
     'outflow' = strsplit(glmtools::get_nml_value(nml_obj, 'outflow_fl'), split=',')[[1]])
-  file.path(sim_dir, in_files)
+  file.path(sim_res_dir, in_files)
 }
 
 #' Extract temperature and ice data at fixed depths (every 0.5m) and write to a
 #' feather file
-#' @param sim_dir the simulation directory for a single reservoir and single GLM
+#' @param sim_res_dir the simulation directory for a single reservoir and single GLM
 #'   model run
-#' @param nml_obj an NML object that can be read with glmtools
 #' @param export_fl feather filename where the exported data should be written
-export_temp_ice_data <- function(sim_dir, nml_obj, export_fl) {
-  nc_filepath <- locate_out_files(sim_dir, nml_obj, file_type='depthwise')
+export_temp_ice_data <- function(sim_res_dir, export_fl) {
+  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
+  nc_filepath <- locate_out_files(sim_res_dir, file_type='depthwise')
 
   # extract temperatures and ice estimates at regular depths
   lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')

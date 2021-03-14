@@ -1,14 +1,14 @@
 
 # tar_load(c('p1_ltmp_temps.rds','p2_reservoir_ids','p2_meteo','p2_nml_objects','p3_glm','p1_io_res_io_obs.feather'))
-# sim_dir <- '3_run/out/no_io'
 # res_id <- p2_reservoir_ids[2]
+# sim_res_dir <- file.path('3_run/out/no_io', res_id)
 # out_dir <- '4_inspect/out'
 
 # Plot temperature predictions - heat map for all depths, with reservoir observations for comparison
-plot_temps_all_depths <- function(sim_dir, nml_obj, plot_id, out_dir) {
+plot_temps_all_depths <- function(sim_res_dir, plot_id, out_dir) {
   out_file <- file.path(out_dir, sprintf('temps_all_depths_%s.png', plot_id))
   glmtools::plot_temp(
-    locate_out_files(sim_dir, nml_obj, file_type='depthwise'),
+    locate_out_files(sim_res_dir, file_type='depthwise'),
     reference = 'surface',
     fig_path = out_file,
     width=1100, height=400, res=150, units='px')
@@ -19,7 +19,7 @@ plot_temps_all_depths <- function(sim_dir, nml_obj, plot_id, out_dir) {
 
 
 # Plot temperature predictions - time series for the three depth monitoring categories
-plot_temps_sensor_depths <- function(sim_dir, nml_obj, obs_temps_rds, res_id, plot_id, out_dir) {
+plot_temps_sensor_depths <- function(sim_res_dir, obs_temps_rds, res_id, plot_id, out_dir) {
 
   # Compare predictions to observations on specific dates and times
   all_res_obs <- read_rds(obs_temps_rds)
@@ -28,7 +28,7 @@ plot_temps_sensor_depths <- function(sim_dir, nml_obj, obs_temps_rds, res_id, pl
     select(datetime = date, depth, temp)
   obs_tsv <- tempfile(fileext = '.tsv')
   write_tsv(res_obs, obs_tsv)
-  nc_file <- locate_out_files(sim_dir, nml_obj, file_type='depthwise')
+  nc_file <- locate_out_files(sim_res_dir, file_type='depthwise')
   temp_matchups <- resample_to_field(
     nc_file,
     obs_tsv,
@@ -40,8 +40,8 @@ plot_temps_sensor_depths <- function(sim_dir, nml_obj, obs_temps_rds, res_id, pl
   # Plot preds and obs
   temp_matchups %>%
     ggplot(aes(x=DateTime, color=DepthRank)) +
-    geom_point(aes(y=Observed_temp)) +
-    geom_line(aes(y=Modeled_temp), size=1) +
+    geom_point(aes(y=Observed_temp), na.rm=TRUE) +
+    geom_line(aes(y=Modeled_temp), size=1, na.rm=TRUE) +
     scale_color_manual(values=RColorBrewer::brewer.pal(3, "Set2")) +
     theme_classic() +
     xlab('Date') +
@@ -52,7 +52,7 @@ plot_temps_sensor_depths <- function(sim_dir, nml_obj, obs_temps_rds, res_id, pl
 
   # Save the plot
   out_file <- file.path(out_dir, sprintf('temps_sensor_depths_%s.png', plot_id))
-  ggsave(out_file)
+  ggsave(out_file, width = 7, height = 5)
   return(out_file)
 }
 
@@ -61,7 +61,7 @@ plot_temps_sensor_depths <- function(sim_dir, nml_obj, obs_temps_rds, res_id, pl
 # Plot temperature predictions - time series for ~three constant depths
 
 # Plot temperature predictions - time series for the outlet depths
-plot_temps_outlet_depths <- function(sim_dir, nml_obj, plot_id, out_dir) {
+plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
 }
 
 # Compute expected total flow and temperature for the combined outflows
