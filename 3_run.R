@@ -6,7 +6,7 @@ glm_sim <- tribble(
   # ,'3_run/out/210314a_no_io', 'No inflows or outflows; disable_evap = .true.'
   # ,'3_run/out/210314b_io', 'PRMS-based inflows and release-based outflows; disable_evap = .true.'
   # ,'3_run/out/210314c_io_evap', 'PRMS-based inflows and release-based outflows; disable_evap = .false.'
-  ,'3_run/out/210314d_iox_evap', 'PRMS-based inflows, 1.1 upscaled release-based outflows; disable_evap = .false.'
+  ,'3_run/out/210314d_io_evap', 'same as previous so far'
 )
 
 p3 <- list(
