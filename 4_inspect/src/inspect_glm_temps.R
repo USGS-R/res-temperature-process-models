@@ -15,34 +15,72 @@ plot_temps_all_depths <- function(sim_res_dir, plot_id, out_dir) {
   return(out_file)
 }
 
-# Compute RMSE of reservoir pred vs obs temperatures
-
-
-# Plot temperature predictions - time series for the three depth monitoring categories
-plot_temps_sensor_depths <- function(sim_res_dir, obs_temps_rds, res_id, plot_id, out_dir) {
-
-  # Compare predictions to observations on specific dates and times
-  all_res_obs <- read_rds(obs_temps_rds)
-  res_obs <- all_res_obs %>%
-    filter(site_id == res_id) %>%
-    select(datetime = date, depth, temp)
-  obs_tsv <- tempfile(fileext = '.tsv')
-  write_tsv(res_obs, obs_tsv)
+plot_temps_all_depths_obspred <- function(sim_res_dir, obs_res_temps, plot_id, out_dir) {
+  out_file <- file.path(out_dir, sprintf('temps_all_depths_obspred_%s.png', plot_id))
   nc_file <- locate_out_files(sim_res_dir, file_type='depthwise')
-  temp_matchups <- resample_to_field(
+  obs_tmp_tsv <- write_tsv_tempfile(obs_res_temps)
+  glmtools::plot_temp_compare(
+    locate_out_files(sim_res_dir, file_type='depthwise'),
+    field_file = obs_tmp_tsv,
+    fig_path = out_file)
+  return(out_file)
+}
+
+#' Write a data.frame to tsv. This is useful for preparing temperature
+#' observations, which glmtools can resample_to_field once they're written as a
+#' tsv file
+write_tsv_tempfile <- function(dat) {
+  obs_tsv <- tempfile(fileext = '.tsv')
+  write_tsv(dat, obs_tsv)
+  return(obs_tsv)
+}
+
+#' Compute RMSE of reservoir pred vs obs temperatures, all depths
+assess_temps_all_depths <- function(sim_res_dir, obs_res_temps, res_id, sim_id) {
+  temp_matchups <- get_temps_sensor_depths(sim_res_dir, obs_res_temps)
+
+  temp_matchups %>%
+    filter(!is.na(Observed_temp), !is.na(Modeled_temp)) %>%
+    summarize(
+      min_date = min(DateTime),
+      max_date = max(DateTime),
+      n_obs = length(Observed_temp),
+      n_obs_per_day = n_obs / (1 + as.numeric(max_date - min_date, units='days')),
+      RMSE = sqrt(mean((Modeled_temp - Observed_temp)^2)),
+      NSE = 1 - sum((Modeled_temp - Observed_temp)^2) / sum((Observed_temp - mean(Observed_temp))^2),
+      .groups = 'drop') %>%
+    mutate(
+      res_id = res_id,
+      res_name = names(res_id),
+      sim_id = sim_id,
+      .before = 1)
+}
+
+#' Compare predictions to observations on specific dates and times
+get_temps_sensor_depths <- function(sim_res_dir, obs_res_temps) {
+  nc_file <- locate_out_files(sim_res_dir, file_type='depthwise')
+  obs_tmp_tsv <- write_tsv_tempfile(obs_res_temps)
+  temp_matchups <- glmtools::resample_to_field(
     nc_file,
-    obs_tsv,
+    obs_tmp_tsv,
     var_name = 'temp') %>%
     group_by(DateTime) %>%
-    mutate(DepthRank = ordered(3 - length(Depth) + order(Depth), levels=1:3)) %>% # 1,2,3 when n=3; 2,3 otherwise (because the first depth category is the one that gets cut off when water levels drop)
+    mutate(depth_rank = ordered(3 - length(Depth) + order(Depth), levels=1:3)) %>% # 1,2,3 when n=3; 2,3 otherwise (because the first depth category is the one that gets cut off when water levels drop)
     ungroup()
+  return(temp_matchups)
+}
+
+#' Plot temperature predictions - time series for the three depth monitoring categories
+plot_temps_sensor_depths <- function(sim_res_dir, obs_res_temps, res_id, plot_id, out_dir) {
+
+  temp_matchups <- get_temps_sensor_depths(sim_res_dir, obs_res_temps)
 
   # Plot preds and obs
   temp_matchups %>%
-    ggplot(aes(x=DateTime, color=DepthRank)) +
+    ggplot(aes(x=DateTime, color=depth_rank)) +
     geom_point(aes(y=Observed_temp), na.rm=TRUE) +
     geom_line(aes(y=Modeled_temp), size=1, na.rm=TRUE) +
-    scale_color_manual(values=RColorBrewer::brewer.pal(3, "Set2")) +
+    scale_color_manual('Depth Rank', values=RColorBrewer::brewer.pal(3, "Set2")) +
     theme_classic() +
     xlab('Date') +
     ylab('Temperature (deg C)') +
@@ -56,17 +94,37 @@ plot_temps_sensor_depths <- function(sim_res_dir, obs_temps_rds, res_id, plot_id
   return(out_file)
 }
 
-# Compute RMSE by depth category
+#' Compute RMSE by depth category
+assess_temps_sensor_depths <- function(sim_res_dir, obs_res_temps, res_id, sim_id) {
 
-# Plot temperature predictions - time series for ~three constant depths
+  temp_matchups <- get_temps_sensor_depths(sim_res_dir, obs_res_temps)
 
-# Plot temperature predictions - time series for the outlet depths
+  temp_matchups %>%
+    filter(!is.na(Modeled_temp), !is.na(Observed_temp)) %>%
+    group_by(depth_rank) %>%
+    summarize(
+      min_date = min(DateTime),
+      max_date = max(DateTime),
+      n_obs = length(Observed_temp),
+      n_obs_per_day = n_obs / (1 + as.numeric(max_date - min_date, units='days')),
+      min_depth = min(Depth),
+      max_depth = max(Depth),
+      RMSE = sqrt(mean((Modeled_temp - Observed_temp)^2)),
+      NSE = 1 - sum((Modeled_temp - Observed_temp)^2) / sum((Observed_temp - mean(Observed_temp))^2),
+      .groups = 'drop') %>%
+    add_id_cols(res_id, sim_id)
+
+}
+
+#' Plot temperature predictions - time series for ~three constant depths
+
+#' Plot temperature predictions - time series for the outlet depths
 plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
 }
 
-# Compute expected total flow and temperature for the combined outflows
-# Plot outflow temperature predictions and observations
-# Compute RMSEs of outflow pred vs obs for temperature
+#' Compute expected total flow and temperature for the combined outflows
+#' Plot outflow temperature predictions and observations
+#' Compute RMSEs of outflow pred vs obs for temperature
 
 
 
@@ -119,12 +177,12 @@ plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
 #     obs_tsv,
 #     var_name = 'temp') %>%
 #     group_by(DateTime) %>%
-#     mutate(DepthRank = ordered(3 - length(Depth) + order(Depth), levels=1:3)) %>% # 1,2,3 when n=3; 2,3 otherwise (because the first depth category is the one that gets cut off when water levels drop)
+#     mutate(depth_rank = ordered(3 - length(Depth) + order(Depth), levels=1:3)) %>% # 1,2,3 when n=3; 2,3 otherwise (because the first depth category is the one that gets cut off when water levels drop)
 #     ungroup()
 #   temp_matchups %>%
-#     #filter(DepthRank == 1) %>%
+#     #filter(depth_rank == 1) %>%
 #     select(-Depth) %>%
-#     ggplot(aes(x=DateTime, color=DepthRank)) +
+#     ggplot(aes(x=DateTime, color=depth_rank)) +
 #     geom_point(aes(y=Observed_temp)) +
 #     geom_line(aes(y=Modeled_temp), size=1) +
 #     scale_color_manual(values=RColorBrewer::brewer.pal(3, "Set2")) +
@@ -141,7 +199,7 @@ plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
 #   # return table of RMSEs
 #   rmses <- temp_matchups %>%
 #     filter(!is.na(Modeled_temp), !is.na(Observed_temp)) %>%
-#     group_by(DepthRank) %>%
+#     group_by(depth_rank) %>%
 #     summarize(
 #       n = length(Modeled_temp),
 #       MinDepth = min(Depth),
@@ -156,13 +214,13 @@ plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
 #
 # }
 # analyze_res(res_id=p2_reservoir_ids[1])
-# # DepthRank     n MinDepth MaxDepth  RMSE
+# # depth_rank     n MinDepth MaxDepth  RMSE
 # # <ord>     <int>    <dbl>    <dbl> <dbl>
 # # 1            23    0.128     2.02 0.593
 # # 2           110    8.39     13.9  3.55
 # # 3           110   19.7      25.2  1.32
 # analyze_res(res_id=p2_reservoir_ids[2])
-# # DepthRank     n MinDepth MaxDepth  RMSE
+# # depth_rank     n MinDepth MaxDepth  RMSE
 # # <ord>     <int>    <dbl>    <dbl> <dbl>
 # # 2            26     7.47     10.9  1.78
 # # 3            31     6.33     27.3  1.74

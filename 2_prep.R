@@ -2,6 +2,7 @@ source('2_prep/src/munge_nmls.R')
 source('2_prep/src/munge_meteo.R')
 source('2_prep/src/munge_inouts.R')
 source('2_prep/src/harmonize_dates.R')
+source('2_prep/src/visualize_inputs.R')
 
 p2 <- list(
   # Set the list of reservoirs to proceed with. As currently coded, we extract the reservoir IDs from the nml list,
@@ -113,11 +114,31 @@ p2 <- list(
     iteration = 'list'),
 
   tar_target(
-    p2_obs_temps,
+    p2_obs_res_temps,
     read_rds(p1_ltmp_temps.rds) %>%
       filter(site_id == p2_reservoir_ids) %>%
       select(datetime = date, depth, temp),
-    pattern = p2_reservoir_ids,
-    iteration = 'list')
+    pattern = map(p2_reservoir_ids),
+    iteration = 'list'),
 
+  tar_target(
+    p2_obs_res_levels,
+    read_rds(p1_ltmp_levels.rds) %>%
+      filter(site_id == p2_reservoir_ids) %>%
+      select(date, surface_elevation_m),
+    pattern = map(p2_reservoir_ids),
+    iteration = 'list'),
+
+  # Visualize
+
+  tar_target(
+    p2_plot_water_budget,
+    plot_outflows(
+      p2_inouts,
+      p2_releases,
+      res_id = p2_reservoir_ids,
+      out_dir = '2_prep/out'),
+    pattern = map(p2_reservoir_ids, p2_inouts, p2_releases),
+    packages = c('glmtools'),
+    format = 'file')
 )
