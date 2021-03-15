@@ -118,11 +118,58 @@ assess_temps_sensor_depths <- function(sim_res_dir, obs_res_temps, res_id, sim_i
 
 #' Plot temperature predictions - time series for ~three constant depths
 
-#' Plot temperature predictions - time series for the outlet depths
-plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
+#' Get temperature predictions as time series for the outlet depths
+get_outlet_preds <- function(sim_res_dir) {
+
+  # get outlet info
+  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
+  crest_elev <- glmtools::get_nml_value(nml_obj, 'crest_elev')
+  lake_depth <- glmtools::get_nml_value(nml_obj, 'lake_depth')
+  base_elev <- crest_elev - lake_depth
+  outlets <- tibble(
+    outlet_fl = locate_out_files(sim_res_dir, 'outflow'),
+    outlet_name = locate_in_files(sim_res_dir, 'outflow') %>%
+      basename() %>%
+      gsub('\\.csv|out_', '', .)) %>%
+    mutate(outlet_id = 1:n()) %>%
+    slice(seq_len(glmtools::get_nml_value(nml_obj, 'num_outlet')))
+
+  # get flows and temps at the outlets
+  nc_file <- locate_out_files(sim_res_dir, file_type='depthwise')
+  outlet_preds <- purrr::pmap_dfr(
+    outlets,
+    function(outlet_fl, outlet_name, outlet_id, ...) {
+      read_csv(outlet_fl, col_types=cols()) %>%
+        mutate(temp = na_if(temp, -9999)) %>%
+        mutate(outlet_name = outlet_name, .before=1)
+    })
+
+  return(outlet_preds)
 }
 
+
+#' Plot temperature predictions - time series for the outlet depths
+plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
+
+  outlet_preds <- get_outlet_preds(sim_res_dir)
+
+  outlet_preds %>%
+    ggplot(aes(x=time, y=temp, color=outlet_name)) +
+    # geom_line() +
+    geom_point(size=0.1) +
+    theme_bw()
+
+}
 #' Compute expected total flow and temperature for the combined outflows
+plot_downstream_predobs <- function(sim_res_dir, plot_id, out_dir) {
+
+  outlet_preds <- get_outlet_preds(sim_res_dir)
+
+  # TODO: this calculation doesn't work yet
+  outlet_preds %>%
+    group_by(time) %>%
+    summarize(temp = (flow * temp)[!is.na(flow)]/sum(flow, na.rm=TRUE))
+}
 #' Plot outflow temperature predictions and observations
 #' Compute RMSEs of outflow pred vs obs for temperature
 
