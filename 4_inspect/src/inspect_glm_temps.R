@@ -1,8 +1,15 @@
-
-# tar_load(c('p1_ltmp_temps.rds','p2_reservoir_ids','p2_meteo','p2_nml_objects','p3_glm','p1_io_res_io_obs.feather'))
-# res_id <- p2_reservoir_ids[2]
-# sim_res_dir <- file.path('3_run/out/no_io', res_id)
-# out_dir <- '4_inspect/out'
+# Code for developing a new inspection function:
+# library(targets)
+# library(tidyverse)
+# source('3_run/src/process_glm_output.R')
+sim_id <- '210314a_no_io'
+res_num <- 1
+res_id <- tar_read(p2_reservoir_ids)[res_num]
+sim_res_dir <- file.path('3_run/out', sim_id, res_id)
+plot_id <- sprintf('%s_%s', res_id, sim_id)
+out_dir <- 'tmp'
+inouts = tar_read(p2_inouts)[[res_num]]
+obs_inouts = tar_read(p2_obs_inouts)[[res_num]]
 
 # Plot temperature predictions - heat map for all depths, with reservoir observations for comparison
 plot_temps_all_depths <- function(sim_res_dir, plot_id, out_dir) {
@@ -117,62 +124,191 @@ assess_temps_sensor_depths <- function(sim_res_dir, obs_res_temps, res_id, sim_i
 }
 
 #' Plot temperature predictions - time series for ~three constant depths
+# (not doing this for now)
 
-#' Get temperature predictions as time series for the outlet depths
-get_outlet_preds <- function(sim_res_dir) {
+#' Get predictions at outlet depths. This is different from get_outlet_preds
+#' because that function reads the outlet_xx.csv files from the output, and
+#' those files contain NA (OK, -9999) for temperatures on days when predicted
+#' flow = 0. We'd like to have temperature predictions at the relevant depths on
+#' all days.
+get_temps_outlet_depths <- function(sim_res_dir) {
 
-  # get outlet info
-  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
-  crest_elev <- glmtools::get_nml_value(nml_obj, 'crest_elev')
-  lake_depth <- glmtools::get_nml_value(nml_obj, 'lake_depth')
-  base_elev <- crest_elev - lake_depth
-  outlets <- tibble(
-    outlet_fl = locate_out_files(sim_res_dir, 'outflow'),
-    outlet_name = locate_in_files(sim_res_dir, 'outflow') %>%
-      basename() %>%
-      gsub('\\.csv|out_', '', .)) %>%
-    mutate(outlet_id = 1:n()) %>%
-    slice(seq_len(glmtools::get_nml_value(nml_obj, 'num_outlet')))
-
-  # get flows and temps at the outlets
+  nml_obj <- locate_in_files(sim_res_dir, 'nml') %>% glmtools::read_nml()
+  base_elev <- glmtools::get_nml_value(nml_obj, 'crest_elev') - glmtools::get_nml_value(nml_obj, 'lake_depth')
   nc_file <- locate_out_files(sim_res_dir, file_type='depthwise')
-  outlet_preds <- purrr::pmap_dfr(
-    outlets,
-    function(outlet_fl, outlet_name, outlet_id, ...) {
-      read_csv(outlet_fl, col_types=cols()) %>%
-        mutate(temp = na_if(temp, -9999)) %>%
-        mutate(outlet_name = outlet_name, .before=1)
-    })
 
-  return(outlet_preds)
+  outlet_info <- get_outlet_info(sim_res_dir) %>%
+    mutate(
+      reference = case_when(
+        outlet_type == 1 ~ 'bottom',
+        outlet_type == 2 ~ 'surface'),
+      z_out = case_when(
+        reference == 'bottom' ~ outlet_elev - base_elev,
+        reference == 'surface' ~ outlet_elev))
+
+  # Make one call to glmtools::get_temp for each unique reference-z_out combo,
+  # then join the results and merge back the outlet metadata
+  extraction_depths <- outlet_info %>%
+    select(reference, z_out) %>%
+    distinct()
+  temp_matchups <- if(nrow(extraction_depths) > 0) {
+    purrr::pmap_df(
+      extraction_depths, function(reference, z_out) {
+        glmtools::get_temp(nc_file, reference = reference, z_out = z_out) %>%
+          set_names(c('DateTime', 'temp')) %>%
+          mutate(
+            time = as.Date(format(DateTime, '%Y-%m-%d')),
+            reference = reference,
+            z_out = z_out) %>%
+          select(-DateTime) %>%
+          left_join(
+            outlet_info %>% select(outlet_label, reference, z_out),
+            by=c('reference', 'z_out'))
+      }) %>%
+      as_tibble() %>%
+      select(outlet_label, time, temp, reference, z_out)
+  } else {
+    tibble(outlet_label = '', time = Sys.Date(), temp = 0.0, reference = '', z_out = 0.0)[c(),]
+  }
+
+  return(temp_matchups)
+
 }
 
+#' Make a blank plot to represent the absence of info
+plot_blank <- function(title, message = '(no data)') {
+  ggplot() +
+    annotate('text', x = 0, y = 0, label = message) +
+    ggtitle(title) +
+    xlab('') + ylab('') +
+    theme_bw() + theme(axis.text = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank())
+}
 
 #' Plot temperature predictions - time series for the outlet depths
-plot_temps_outlet_depths <- function(sim_res_dir, plot_id, out_dir) {
+plot_temps_outlet_depths <- function(sim_res_dir, res_id, plot_id, out_dir) {
 
+  # Get two types of predictions: those exported in the outlet_xx.csv files
+  # (which have temp = -9999 when flow = 0, and which integrate over a range of
+  # depths to simulate withdrawal) and temperature predictions at specific
+  # reservoir depths that correspond to outlet depths
   outlet_preds <- get_outlet_preds(sim_res_dir)
+  outlet_depth_preds <- get_temps_outlet_depths(sim_res_dir)
 
-  outlet_preds %>%
-    ggplot(aes(x=time, y=temp, color=outlet_name)) +
-    # geom_line() +
-    geom_point(size=0.1) +
-    theme_bw()
+  plot_title <- sprintf('Predicted temps at outflows (points) and outflow depths (lines)\nfor %s (%s)', names(res_id), res_id)
+  if(nrow(outlet_depth_preds) == 0) {
+    plot_blank(
+      title = plot_title,
+      message = '(no outflows defined)')
+  } else {
+    outlet_depth_preds %>%
+      ggplot(aes(x = time, y = temp, color = outlet_label)) +
+      geom_line(alpha = 0.5) +
+      geom_point(data = outlet_preds, size = 0.1, alpha = 1, na.rm = TRUE) +
+      scale_color_discrete(guide = 'none') +
+      facet_grid(outlet_label ~ .) +
+      theme_bw() +
+      ggtitle(plot_title)
+  }
 
+  # Save the plot
+  out_file <- file.path(out_dir, sprintf('temps_outlet_depths_%s.png', plot_id))
+  num_outlets <- length(unique(outlet_depth_preds$outlet_label))
+  ggsave(out_file, width = 7, height = 2 + num_outlets)
+  return(out_file)
 }
+
 #' Compute expected total flow and temperature for the combined outflows
-plot_downstream_predobs <- function(sim_res_dir, plot_id, out_dir) {
+plot_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plot_id, out_dir) {
 
-  outlet_preds <- get_outlet_preds(sim_res_dir)
+  ts_out_file <- file.path(out_dir, sprintf('temps_downstream_ts_%s.png', plot_id))
+  pairs_out_file <- file.path(out_dir, sprintf('temps_downstream_pairs_%s.png', plot_id))
+  plot_title <- sprintf('Downstream temperatures for %s (%s)', names(res_id), res_id) # used in both plots
 
-  # TODO: this calculation doesn't work yet
-  outlet_preds %>%
+  # Get GLM predictions for temperatures downstream of the reservoir, based on
+  # outlet_xx.csv files
+  outlet_preds_glm <- get_outlet_preds(sim_res_dir) %>%
+    filter(!is.na(temp)) %>%
     group_by(time) %>%
-    summarize(temp = (flow * temp)[!is.na(flow)]/sum(flow, na.rm=TRUE))
+    summarize(
+      temp = sum((flow * temp))/sum(flow),
+      flow = sum(flow),
+      .groups='drop') %>%
+    mutate(id = 'outlets')
+
+  # If GLM predictions are absent, make dummy plots and leave
+  if(nrow(outlet_preds_glm) == 0) {
+    plot_blank(
+      title = plot_title,
+      message = '(no outflows defined)')
+    ggsave(ts_out_file, width = 7, height = 2)
+    ggsave(pairs_out_file, width = 7, height = 2)
+    return(c(ts_out_file, pairs_out_file))
+  }
+
+  # Get SNTemp (or reservoir-free PGDL) predictions
+  outlet_preds_inouts <- inouts %>%
+    filter(location == 'outflow') %>%
+    select(id = seg_id_nat, time, flow, temp)
+
+  # Get observations downstream of the reservoir
+  outlet_obs <- obs_inouts %>%
+    filter(location == 'outflow') %>%
+    select(id = site_id, time, flow, temp) %>%
+    # get rid of duplicates (27 for cannonsville)
+    group_by(time, id) %>%
+    summarize(n = n(), temp = if(any(!is.na(temp))) mean(temp[!is.na(temp)]) else NA, flow = mean(flow), .groups = 'drop')
+  # filter(outlet_obs, n > 1) # here's how to inspect those duplicates
+
+  # Combine GLM preds, reservoir-free model preds, and obs temperatures
+  outlet_predobs <- bind_rows(
+    glm = outlet_preds_glm,
+    nores = outlet_preds_inouts,
+    obs = outlet_obs,
+    .id = 'source') %>%
+    mutate(
+      source_id = {
+        source_id <- paste(source, id, sep='_')
+        source_id_vals <- unique(source_id)
+        source_id_levels <- purrr::map(
+          c('obs','nores','glm'),
+          ~ which(!is.na(str_match(source_id_vals, .x)[,1]))) %>%
+          flatten_int() %>% source_id_vals[.]
+        ordered(source_id, source_id_levels)
+      })
+
+  # Make and save timeseries plot
+  outlet_predobs %>%
+    filter(time >= min(time[source == 'glm'])) %>%
+    ggplot(aes(x=time, y=temp, color=source_id)) +
+    geom_point(size=0.2, na.rm = TRUE) +
+    scale_color_discrete(guide = FALSE) +
+    theme_bw() +
+    facet_grid(source_id ~ .) +
+    ggtitle(plot_title)
+  ggsave(ts_out_file, width = 7, height = 7)
+
+  # Make and save pairs plot
+  png(pairs_out_file, width = 7, height = 7, units = 'in', res = 300)
+  suppressWarnings({
+    outlet_predobs %>%
+      select(-id, -source, -flow) %>%
+      pivot_wider(id_cols = c(time), names_from = source_id, values_from = c(temp)) %>%
+      { suppressWarnings(
+        GGally::ggpairs(., columns=c(4,2,3), lower = list(continuous = GGally::wrap('points', alpha = 0.3, size=0.1))) +
+          geom_abline() +
+          theme_bw() +
+          ggtitle(plot_title)
+      )} %>%
+      print()
+  })
+  dev.off()
+
+  # Return the filenames of both plots
+  return(c(ts_out_file, pairs_out_file))
 }
+
 #' Plot outflow temperature predictions and observations
 #' Compute RMSEs of outflow pred vs obs for temperature
-
 
 
 

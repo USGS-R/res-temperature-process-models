@@ -112,10 +112,9 @@ plot_lake_levels <- function(sim_res_dir, obs_res_levels, res_id, plot_id, out_d
 #' Combine predictions and observations of lake levels
 get_level_pred_obs <- function(sim_res_dir, obs_res_levels) {
 
-  nml_obj <- file.path(sim_res_dir, 'glm3.nml') %>% glmtools::read_nml()
-  crest_elev <- glmtools::get_nml_value(nml_obj, 'crest_elev')
-  lake_depth <- glmtools::get_nml_value(nml_obj, 'lake_depth')
-  base_elev <- crest_elev - lake_depth
+  nml_obj <- locate_in_files(sim_res_dir, 'nml') %>% glmtools::read_nml()
+  base_elev <- glmtools::get_nml_value(nml_obj, 'crest_elev') -
+    glmtools::get_nml_value(nml_obj, 'lake_depth')
 
   lake_preds <- locate_out_files(sim_res_dir, file_type='lake') %>%
     read_csv(col_types=cols(time = col_character())) %>%

@@ -157,7 +157,34 @@ mapped_targets <- tar_map(
         sim_id = basename(sim_dir))
     },
     pattern = map(p2_reservoir_ids, p2_obs_res_temps),
-    packages = c('glmtools'))
+    packages = c('glmtools')),
+
+  # Temperature predictions - below reservoir
+
+  tar_target(
+    p4_plot_temps_outlet_depths,
+    plot_temps_outlet_depths(
+      sim_res_dir = file.path(sim_dir, p2_reservoir_ids),
+      res_id = p2_reservoir_ids,
+      plot_id = sprintf('%s_%s', p2_reservoir_ids, basename(sim_dir)),
+      out_dir = '4_inspect/out'),
+    pattern = map(p2_reservoir_ids),
+    format = 'file'
+  ),
+
+  tar_target(
+    p4_plot_downstream_predobs,
+    plot_downstream_predobs(
+      sim_res_dir = file.path(sim_dir, p2_reservoir_ids),
+      inouts = p2_inouts,
+      obs_inouts = p2_obs_inouts,
+      res_id = p2_reservoir_ids,
+      plot_id = sprintf('%s_%s', p2_reservoir_ids, basename(sim_dir)),
+      out_dir = '4_inspect/out'),
+    pattern = map(p2_reservoir_ids, p2_inouts, p2_obs_inouts),
+    packages = c('GGally'),
+    format = 'file'
+  )
 )
 
 combine_assessments <- function(...) {
