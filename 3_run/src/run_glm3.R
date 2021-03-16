@@ -26,9 +26,9 @@ run_glm3_model <- function(sim_dir, res_id, nml_obj, inouts_obj, releases_obj, m
     inflow_fl = strsplit(glmtools::get_nml_value(nml_obj, 'inflow_fl'), split=',')[[1]]
   )
   inouts_obj %>%
-    filter(direction == 'inflow') %>%
+    filter(location == 'inflow') %>%
     filter(time >= start_date, time <= stop_date) %>%
-    select(-direction) %>%
+    select(-location) %>%
     left_join(inflow_files, by='seg_id_nat') %>%
     group_by(seg_id_nat, inflow_fl) %>%
     dplyr::group_walk(function(inflow_data, group_keys) {
