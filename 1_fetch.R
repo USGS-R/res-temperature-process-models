@@ -80,8 +80,8 @@ p1 <- list(
   # currently) from ScienceBase, using static branching over several files
   tar_map(
     values = tibble(
-      io_filenames = file.path('1_fetch/out', c('res_io_obs.feather', 'res_io_sntemp.feather')),
-      target_names = basename(io_filenames)),
+      target_names = c('res_io_obs.feather', 'res_io_sntemp.feather'),
+      io_filenames = file.path('1_fetch/out', target_names)),
     names = starts_with('target_names'),
     tar_target(
       p1_io,
