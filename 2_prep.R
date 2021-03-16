@@ -5,6 +5,9 @@ source('2_prep/src/harmonize_dates.R')
 source('2_prep/src/visualize_inputs.R')
 
 p2 <- list(
+
+  #### Munge model inputs ####
+
   # Set the list of reservoirs to proceed with. As currently coded, we extract the reservoir IDs from the nml list,
   # but this code may be overridden by a vector or subsetting code to reduce the number of models being processed in
   # p2 and subsequent phases
@@ -16,20 +19,21 @@ p2 <- list(
       .[] # .[c(1,1,2)] # subset/customize the list if desired
   ),
   # Identify the set of meteo files corresponding to the [potentially subsetted] p2_reservoir_ids
-  tar_target(
+  tar_files(
     p2_meteo_files,
     {
-      p2_meteo_filenames <- read_rds(p1_ltmp_nml_list.rds) %>%
+      depends <- p1_meteo_files
+      read_rds(p1_ltmp_nml_list.rds) %>%
         purrr::map_chr('meteo_fl') %>%
         .[p2_reservoir_ids] %>%
         unique() %>%
         file.path('1_fetch/out', .)
-      p1_meteo_files[match(p2_meteo_filenames, p2_meteo_filenames)]
     }
   ),
+  # tar_target(p2_meteo_files, p2_meteo_filenames, pattern=map(p2_meteo_filenames), format='file'),
 
   # Create a list of munged meteo tables, one per NLDAS cell. Here we map over
-  # the meteo files, readin and munging each file into an NLDAS-cell-specific
+  # the meteo files, reading and munging each file into an NLDAS-cell-specific
   # table, which `targets` then can present as an iterable list
   tar_target(
     p2_meteo,
@@ -66,8 +70,8 @@ p2 <- list(
       inout_feather = p1_io_res_io_sntemp.feather,
       res_id = p2_reservoir_ids),
     pattern = map(p2_reservoir_ids),
+    format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
     packages = c('arrow'),
-    format = 'fst',
     iteration = 'list'
   ),
 
@@ -78,8 +82,8 @@ p2 <- list(
       releases_csv = p1_releases_csv,
       res_id = p2_reservoir_ids),
     pattern = map(p2_reservoir_ids),
+    format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
     packages = c('arrow'),
-    format = 'fst',
     iteration = 'list'
   ),
 
@@ -113,12 +117,15 @@ p2 <- list(
     packages = c('glmtools'),
     iteration = 'list'),
 
+  #### Munge observation data ####
+
   tar_target(
     p2_obs_res_temps,
     read_rds(p1_ltmp_temps.rds) %>%
       filter(site_id == p2_reservoir_ids) %>%
       select(datetime = date, depth, temp),
     pattern = map(p2_reservoir_ids),
+    format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
     iteration = 'list'),
 
   tar_target(
@@ -127,9 +134,18 @@ p2 <- list(
       filter(site_id == p2_reservoir_ids) %>%
       select(date, surface_elevation_m),
     pattern = map(p2_reservoir_ids),
+    format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
     iteration = 'list'),
 
-  # Visualize
+  tar_target(
+    p2_obs_inouts,
+    munge_inouts_obs(p1_io_res_io_obs.feather, p2_reservoir_ids),
+    pattern = map(p2_reservoir_ids),
+    format = 'fst', # fst is about twice as fast to load as rds, 10% faster than qs
+    packages = 'arrow',
+    iteration = 'list'),
+
+  ##### Visualize ####
 
   tar_target(
     p2_plot_water_budget,
