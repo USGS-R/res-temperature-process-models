@@ -99,6 +99,7 @@ get_outlet_preds <- function(sim_res_dir) {
         read_csv(outlet_outfl, col_types=cols()) %>%
           mutate(
             time = as.Date(time),
+            flow = flow / (24*60*60), # I can't find units documentation for this, but the data in outlet_xx.csv sure seem to be off by sec/day=86400
             temp = na_if(temp, -9999)) %>%
           mutate(outlet_label = outlet_label, .before=1)
       })
@@ -109,3 +110,49 @@ get_outlet_preds <- function(sim_res_dir) {
   return(outlet_preds)
 }
 
+#' Compile/compute predicted and observed temperatures downstream of the reservoir
+get_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts) {
+
+  # Compute GLM predictions for temperatures downstream of the reservoir, based on
+  # outlet_xx.csv files
+  outlet_preds_glm <- get_outlet_preds(sim_res_dir) %>%
+    group_by(time) %>%
+    summarize(
+      temp = sum((flow[!is.na(temp)] * temp[!is.na(temp)]))/sum(flow[!is.na(temp)]),
+      flow = sum(flow),
+      .groups='drop') %>%
+    mutate(id = 'outlets')
+
+  # Get SNTemp (or reservoir-free PGDL) predictions
+  outlet_preds_inouts <- inouts %>%
+    filter(location == 'outflow') %>%
+    select(id = seg_id_nat, time, flow, temp)
+
+  # Get observations downstream of the reservoir
+  outlet_obs <- obs_inouts %>%
+    filter(location == 'outflow') %>%
+    select(id = site_id, time, flow, temp) %>%
+    # get rid of duplicates (27 for cannonsville)
+    group_by(time, id) %>%
+    summarize(n = n(), temp = if(any(!is.na(temp))) mean(temp[!is.na(temp)]) else NA, flow = mean(flow), .groups = 'drop')
+  # filter(outlet_obs, n > 1) # here's how to inspect those duplicates
+
+  # Combine GLM preds, reservoir-free model preds, and obs temperatures
+  outlet_predobs <- bind_rows(
+    glm = outlet_preds_glm,
+    nores = outlet_preds_inouts,
+    obs = outlet_obs,
+    .id = 'source') %>%
+    mutate(
+      source_id = {
+        source_id <- paste(source, id, sep='_')
+        source_id_vals <- unique(source_id)
+        source_id_levels <- purrr::map(
+          c('obs','nores','glm'),
+          ~ which(!is.na(str_match(source_id_vals, .x)[,1]))) %>%
+          flatten_int() %>% source_id_vals[.]
+        ordered(source_id, source_id_levels)
+      })
+
+  return(outlet_predobs)
+}

@@ -89,6 +89,20 @@ mapped_targets <- tar_map(
     pattern = map(p2_reservoir_ids, p2_obs_res_levels),
     packages = c('glmtools')),
 
+  tar_target(
+    p4_plot_flows_downstream_predobs,
+    plot_flows_downstream_predobs(
+      sim_res_dir = file.path(sim_dir, p2_reservoir_ids),
+      inouts = p2_inouts,
+      obs_inouts = p2_obs_inouts,
+      res_id = p2_reservoir_ids,
+      plot_id = sprintf('%s_%s', p2_reservoir_ids, basename(sim_dir)),
+      out_dir = '4_inspect/out'),
+    pattern = map(p2_reservoir_ids, p2_inouts, p2_obs_inouts),
+    packages = c('GGally'),
+    format = 'file'
+  ),
+
   # Temperature predictions - within reservoir
 
   tar_target(
@@ -173,8 +187,8 @@ mapped_targets <- tar_map(
   ),
 
   tar_target(
-    p4_plot_downstream_predobs,
-    plot_downstream_predobs(
+    p4_plot_temps_downstream_predobs,
+    plot_temps_downstream_predobs(
       sim_res_dir = file.path(sim_dir, p2_reservoir_ids),
       inouts = p2_inouts,
       obs_inouts = p2_obs_inouts,
@@ -184,6 +198,18 @@ mapped_targets <- tar_map(
     pattern = map(p2_reservoir_ids, p2_inouts, p2_obs_inouts),
     packages = c('GGally'),
     format = 'file'
+  ),
+
+  # Temperature and discharge predictions below reservoir
+  tar_target(
+    p4_assess_downstream_predobs,
+    assess_downstream_predobs(
+      sim_res_dir = file.path(sim_dir, p2_reservoir_ids),
+      inouts = p2_inouts,
+      obs_inouts = p2_obs_inouts,
+      res_id = p2_reservoir_ids,
+      sim_id = basename(sim_dir)),
+    pattern = map(p2_reservoir_ids, p2_inouts, p2_obs_inouts)
   )
 )
 
@@ -227,6 +253,12 @@ p4 <- list(
   tar_combine(
     p4_assess_temps_sensor_depths_df,
     mapped_targets$p4_assess_temps_sensor_depths,
-    command = combine_assessments(!!!.x))
+    command = combine_assessments(!!!.x)),
+
+  tar_combine(
+    p4_assess_downstream_predobs_df,
+    mapped_targets$p4_assess_downstream_predobs,
+    command = combine_assessments(!!!.x) %>%
+      arrange(variable, res_name, desc(model), sim_id))
 
 )

@@ -148,3 +148,61 @@ assess_lake_levels <- function(sim_res_dir, obs_res_levels, res_id, sim_id) {
       .groups = 'drop') %>%
     add_id_cols(res_id, sim_id)
 }
+
+#' Plot predicted and observed flows downstream of the reservoir
+plot_flows_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plot_id, out_dir) {
+
+  # Get the predictions and observations
+  outlet_predobs <- get_downstream_predobs(sim_res_dir, inouts, obs_inouts)
+
+  # Prepare to save plots
+  ts_out_file <- file.path(out_dir, sprintf('flows_downstream_ts_%s.png', plot_id))
+  pairs_out_file <- file.path(out_dir, sprintf('flows_downstream_pairs_%s.png', plot_id))
+  plot_title <- sprintf('Downstream log flows for %s (%s)', names(res_id), res_id) # used in both plots
+
+  # If GLM predictions are absent, make dummy plots and leave
+  if(nrow(filter(outlet_predobs, source == 'glm')) == 0) {
+    plot_blank(
+      title = plot_title,
+      message = '(no outflows defined)')
+    ggsave(ts_out_file, width = 7, height = 2)
+    ggsave(pairs_out_file, width = 7, height = 2)
+    return(c(ts_out_file, pairs_out_file))
+  }
+
+  # Make and save timeseries plot
+  outlet_predobs %>%
+    filter(time >= min(time[source == 'glm'])) %>%
+    ggplot(aes(x=time, y=flow, color=source_id)) +
+    geom_point(size=0.2, na.rm = TRUE) +
+    scale_y_log10() +
+    scale_color_discrete(guide = FALSE) +
+    theme_bw() +
+    facet_grid(source_id ~ .) +
+    ggtitle(plot_title)
+  ggsave(ts_out_file, width = 7, height = 7)
+
+  # Make and save pairs plot
+  pairs_predobs <- outlet_predobs %>%
+    mutate(log_flow = log(flow + 0.05)) %>%
+    select(-id, -source, -temp, -flow) %>%
+    pivot_wider(id_cols = c(time), names_from = source_id, values_from = c(log_flow)) #%>%
+    # rowwise() %>%
+    # mutate(
+    #   no_flow = any(c_across(2:4) <= log(0.1)),
+    #   color = case_when(no_flow ~ 'black', TRUE ~ 'gray'))
+  png(pairs_out_file, width = 7, height = 7, units = 'in', res = 300)
+  suppressWarnings({
+    (pairs_predobs %>%
+      GGally::ggpairs(columns=c(4,3,2), lower = list(
+        continuous = GGally::wrap('points', alpha = 0.3, size = 0.1))) + # , color = pairs_predobs$color
+      geom_abline(color='gray') +
+      theme_bw() +
+      ggtitle(plot_title)) %>%
+      print()
+  })
+  dev.off()
+
+  # Return the filenames of both plots
+  return(c(ts_out_file, pairs_out_file))
+}

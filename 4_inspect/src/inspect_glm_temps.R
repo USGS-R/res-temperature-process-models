@@ -2,14 +2,14 @@
 # library(targets)
 # library(tidyverse)
 # source('3_run/src/process_glm_output.R')
-sim_id <- '210314a_no_io'
-res_num <- 1
-res_id <- tar_read(p2_reservoir_ids)[res_num]
-sim_res_dir <- file.path('3_run/out', sim_id, res_id)
-plot_id <- sprintf('%s_%s', res_id, sim_id)
-out_dir <- 'tmp'
-inouts = tar_read(p2_inouts)[[res_num]]
-obs_inouts = tar_read(p2_obs_inouts)[[res_num]]
+# sim_id <- '210314b_io'
+# res_num <- 1
+# res_id <- tar_read(p2_reservoir_ids)[res_num]
+# sim_res_dir <- file.path('3_run/out', sim_id, res_id)
+# plot_id <- sprintf('%s_%s', res_id, sim_id)
+# out_dir <- 'tmp'
+# inouts = tar_read(p2_inouts)[[res_num]]
+# obs_inouts = tar_read(p2_obs_inouts)[[res_num]]
 
 # Plot temperature predictions - heat map for all depths, with reservoir observations for comparison
 plot_temps_all_depths <- function(sim_res_dir, plot_id, out_dir) {
@@ -217,26 +217,19 @@ plot_temps_outlet_depths <- function(sim_res_dir, res_id, plot_id, out_dir) {
   return(out_file)
 }
 
-#' Compute expected total flow and temperature for the combined outflows
-plot_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plot_id, out_dir) {
+#' Plot predicted and observed temperatures downstream of the reservoir
+plot_temps_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plot_id, out_dir) {
 
+  # Get the predictions and observations
+  outlet_predobs <- get_downstream_predobs(sim_res_dir, inouts, obs_inouts)
+
+  # Prepare to save plots
   ts_out_file <- file.path(out_dir, sprintf('temps_downstream_ts_%s.png', plot_id))
   pairs_out_file <- file.path(out_dir, sprintf('temps_downstream_pairs_%s.png', plot_id))
   plot_title <- sprintf('Downstream temperatures for %s (%s)', names(res_id), res_id) # used in both plots
 
-  # Get GLM predictions for temperatures downstream of the reservoir, based on
-  # outlet_xx.csv files
-  outlet_preds_glm <- get_outlet_preds(sim_res_dir) %>%
-    filter(!is.na(temp)) %>%
-    group_by(time) %>%
-    summarize(
-      temp = sum((flow * temp))/sum(flow),
-      flow = sum(flow),
-      .groups='drop') %>%
-    mutate(id = 'outlets')
-
   # If GLM predictions are absent, make dummy plots and leave
-  if(nrow(outlet_preds_glm) == 0) {
+  if(nrow(filter(outlet_predobs, source == 'glm')) == 0) {
     plot_blank(
       title = plot_title,
       message = '(no outflows defined)')
@@ -244,37 +237,6 @@ plot_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plo
     ggsave(pairs_out_file, width = 7, height = 2)
     return(c(ts_out_file, pairs_out_file))
   }
-
-  # Get SNTemp (or reservoir-free PGDL) predictions
-  outlet_preds_inouts <- inouts %>%
-    filter(location == 'outflow') %>%
-    select(id = seg_id_nat, time, flow, temp)
-
-  # Get observations downstream of the reservoir
-  outlet_obs <- obs_inouts %>%
-    filter(location == 'outflow') %>%
-    select(id = site_id, time, flow, temp) %>%
-    # get rid of duplicates (27 for cannonsville)
-    group_by(time, id) %>%
-    summarize(n = n(), temp = if(any(!is.na(temp))) mean(temp[!is.na(temp)]) else NA, flow = mean(flow), .groups = 'drop')
-  # filter(outlet_obs, n > 1) # here's how to inspect those duplicates
-
-  # Combine GLM preds, reservoir-free model preds, and obs temperatures
-  outlet_predobs <- bind_rows(
-    glm = outlet_preds_glm,
-    nores = outlet_preds_inouts,
-    obs = outlet_obs,
-    .id = 'source') %>%
-    mutate(
-      source_id = {
-        source_id <- paste(source, id, sep='_')
-        source_id_vals <- unique(source_id)
-        source_id_levels <- purrr::map(
-          c('obs','nores','glm'),
-          ~ which(!is.na(str_match(source_id_vals, .x)[,1]))) %>%
-          flatten_int() %>% source_id_vals[.]
-        ordered(source_id, source_id_levels)
-      })
 
   # Make and save timeseries plot
   outlet_predobs %>%
@@ -294,7 +256,7 @@ plot_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plo
       select(-id, -source, -flow) %>%
       pivot_wider(id_cols = c(time), names_from = source_id, values_from = c(temp)) %>%
       { suppressWarnings(
-        GGally::ggpairs(., columns=c(4,2,3), lower = list(continuous = GGally::wrap('points', alpha = 0.3, size=0.1))) +
+        GGally::ggpairs(., columns=c(4,3,2), lower = list(continuous = GGally::wrap('points', alpha = 0.3, size=0.1))) +
           geom_abline() +
           theme_bw() +
           ggtitle(plot_title)
@@ -307,10 +269,34 @@ plot_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, plo
   return(c(ts_out_file, pairs_out_file))
 }
 
-#' Plot outflow temperature predictions and observations
-#' Compute RMSEs of outflow pred vs obs for temperature
+#' Compute RMSEs and NSEs of outflow (downstream) temperature and flow
+assess_downstream_predobs <- function(sim_res_dir, inouts, obs_inouts, res_id, sim_id) {
 
+  # Get the predictions and observations
+  outlet_predobs <- get_downstream_predobs(sim_res_dir, inouts, obs_inouts)
 
+  assessment <- purrr::map_df(setNames(nm=c('temp','flow','flow_log')), function(var) {
+    outlet_predobs %>%
+      mutate(flow_log = log(flow)) %>%
+      pivot_wider(id_cols = c(time), names_from = source_id, values_from = all_of(var)) %>%
+      pivot_longer(cols=contains(c('glm','nores')), values_to = 'pred', names_to = 'model') %>%
+      rename_with(.cols = starts_with('obs'), .fn = function(colname) 'obs') %>%
+      filter(!is.na(obs), !is.na(pred)) %>%
+      group_by(model) %>%
+      summarize(
+        min_date = min(time),
+        max_date = max(time),
+        n_obs = length(obs),
+        n_obs_per_day = n_obs / (1 + as.numeric(max_date - min_date, units='days')),
+        RMSE = sqrt(mean((pred - obs)^2)),
+        NSE = 1 - sum((pred - obs)^2) / sum((obs - mean(obs))^2),
+        .groups = 'drop')
+  }, .id = 'variable') %>%
+    add_id_cols(res_id, sim_id)
+
+  assessment
+
+}
 
 # analyze_res <- function(
 #   model_log = p3_glm,
