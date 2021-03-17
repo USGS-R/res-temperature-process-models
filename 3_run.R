@@ -1,13 +1,14 @@
 source('3_run/src/run_glm3.R')
 source('3_run/src/process_glm_output.R')
 
-glm_sim <- tribble(
+glm_sims <- tribble(
   ~dir, ~info
-  # ,'3_run/out/210314a_no_io', 'No inflows or outflows; disable_evap = .true.'
-  # ,'3_run/out/210314b_io', 'PRMS-based inflows and release-based outflows; disable_evap = .true.'
-  # ,'3_run/out/210314c_io_evap', 'PRMS-based inflows and release-based outflows; disable_evap = .false.'
-  ,'3_run/out/210314d_io_evap', 'same as previous so far'
+  ,'3_run/out/210314a_no_io', 'No inflows or outflows; disable_evap = .true.'
+  ,'3_run/out/210314b_io', 'PRMS-based inflows and release-based outflows; disable_evap = .true.'
+  ,'3_run/out/210314c_io_evap', 'PRMS-based inflows and release-based outflows; disable_evap = .false.'
+  ,'3_run/out/210316a_2deep', 'switch Direct release from floating offtake to same depth as Conserv'
 )
+glm_sim <- glm_sims[nrow(glm_sims),]
 
 p3 <- list(
 

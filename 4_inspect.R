@@ -6,7 +6,7 @@ source('4_inspect/src/inspect_glm_temps.R')
 # date, so make sure you call tar_make(p3_glm_report.csv) first if you want the
 # plots to reflect new model changes
 sim_summary <- tibble(
-  sim_id = c('210314a_no_io', '210314b_io', '210314c_io_evap', '210314d_io_evap'),
+  sim_id = basename(glm_sims$dir),
   sim_dir = file.path('3_run/out', sim_id),
   sim_report = file.path(sim_dir, 'glm_report.csv')) %>%
   mutate(sim_hash = purrr::map_chr(sim_report, function(sim_rep) {
