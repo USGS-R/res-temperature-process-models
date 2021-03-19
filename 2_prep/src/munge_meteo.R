@@ -20,7 +20,7 @@ build_meteo_xwalk <- function(p2_meteo_files, p2_meteo, p1_ltmp_nml_list.rds, p2
     # A trick: You can't see the names of p1_meteo_files just by calling
     # tar_read(p2_meteo) at the command prompt, but you can extract them
     # into a target.
-    meteo_branch = names(p2_meteo), # branch name for direct revence to just one meteo table
+    meteo_branch = names(p2_meteo), # extract the branch names so we have a direct reference to a specific meteo table
     meteo_data = map_chr(meteo_branch, ~ tar_meta(starts_with(.x))$data) # data hash for pipeline integrity
   )
   nml_list <- read_rds(p1_ltmp_nml_list.rds)
