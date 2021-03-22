@@ -10,8 +10,10 @@ sim_summary <- tibble(
   sim_dir = file.path('3_run/out', sim_id),
   sim_report = file.path(sim_dir, 'glm_report.csv')) %>%
   mutate(sim_hash = purrr::map_chr(sim_report, function(sim_rep) {
-    suppressWarnings(read_csv(sim_rep, col_types=cols())$glm_hash) %>%
-      digest::digest()
+    tryCatch(
+      suppressWarnings(read_csv(sim_rep, col_types=cols())$glm_hash) %>%
+        digest::digest(),
+      error = function(e) NA)
   }))
 mapped_targets <- tar_map(
   values = sim_summary,
