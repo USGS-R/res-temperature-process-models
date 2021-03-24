@@ -1,0 +1,12 @@
+*/tmp/*
+!tmp/README.md
+Rlibs/*
+!Rlibs/README.md
+*/out
+_targets
+*.ipynb
+.ipynb_checkpoints
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
