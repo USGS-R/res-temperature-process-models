@@ -74,8 +74,6 @@ q()
 exit
 ```
 
-Here's how to run 
-
 It should even be possible to run the Jupyter Lab with a shifter kernel, but I'm going to leave this for another day: https://docs.nersc.gov/services/jupyter/#shifter-kernels-on-jupyter. In the meantime, the interactive shifter container code given above will work on a Terminal within Jupyter Lab (or a regular Terminal, of course).
 
 # Explanation of Quickstart
@@ -134,11 +132,12 @@ To add an R kernel to the Jupyter Lab IDE (so that we can build and run R notebo
 conda activate jlab
 conda install -c r r-irkernel zeromq
 ```
-If you have already set up Jupyter Lab for the project (see below) and launched Jupyter Lab, you will have to re-launch Jupyter Lab (see above) to see the R kernel.
 
-A local Rlibs folder and an .Renviron file that points to it are included in the git repo for this project. If it's needed, installation of GitHub packages may go more smoothly if you run the installation from a login node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali node.
+A local Rlibs folder and an .Renviron file that points to it are included in the git repo for this project. If it's needed, installation of GitHub packages may go more smoothly if you run the installation from a Caldera node (`ssh caldera-dtn.cr.usgs.gov`) rather than a Denali Slurm-allocated node.
 
 ### Using the GLM container locally (with Docker)
+
+Recall that the goal is to use Denali+Shifter rather than local+Docker, but if you must:
 
 1. Git clone https://github.com/wdwatkins/glm3r_docker
 
@@ -148,8 +147,6 @@ From the glm3r_docker working directory:
 ```sh
 docker-compose up
 ```
-
-
 
 ### Installing GLM locally
 
